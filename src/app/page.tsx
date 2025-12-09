@@ -22,41 +22,51 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  CircularProgress,
-  Snackbar,
-  Alert,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableRow,
+  Snackbar,
+  Alert,
+  CircularProgress,
+  SelectChangeEvent,
+  Grid,
 } from "@mui/material";
-import type { SelectChangeEvent } from "@mui/material/Select";
-import Grid from "@mui/material/Grid";
 import Image from "next/image";
 import { SolarPower, PriceCheck, RestartAlt, PictureAsPdf, WhatsApp, Print } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
 import { useReactToPrint } from "react-to-print";
-
-import type { Product, QuoteComponent } from "../types/quote";
-import { products, companyDetails, GST_RATE, EXTRA_HEIGHT_RATE } from "../data/priceList";
+// Note: GST and incentive UI elements are internal and removed from the main UI.
+import { products, productsBySupplier, companyDetails, EXTRA_HEIGHT_RATE } from "../data/priceList";
 import { defaultComponents } from "../data/components";
 import { formatCurrency } from "../lib/utils";
+import { SupplierTabs } from "../components/ProductSelector";
+import type { Product, QuoteComponent } from "../types/quote";
 
 type DialogMode = "whatsapp" | "customerPrint";
 
 export default function SolarPricingPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<string>("tata");
   const [extraMargin, setExtraMargin] = useState<number>(0);
+  const [salespersonIncentivePercent, setSalespersonIncentivePercent] = useState<number>(0);
+  const [salespersonIncentiveMode, setSalespersonIncentiveMode] = useState<'percent' | 'fixed'>('percent');
+  const [salespersonIncentiveFixed, setSalespersonIncentiveFixed] = useState<number>(0);
   const [extraWireChecked, setExtraWireChecked] = useState<boolean>(false);
   const [extraWireLength, setExtraWireLength] = useState<number>(0);
   const [extraHeightChecked, setExtraHeightChecked] = useState<boolean>(false);
   const [extraHeightValue, setExtraHeightValue] = useState<number>(0);
+  const [outOfVnsFee, setOutOfVnsFee] = useState<number>(5000);
   const [discount, setDiscount] = useState<number>(0);
   const [location, setLocation] = useState<string>("Varanasi");
   const [salespersonName, setSalespersonName] = useState<string>("");
   const [nowString, setNowString] = useState("");
   const [todayString, setTodayString] = useState("");
+  const [gstFiveShare, setGstFiveShare] = useState<number>(70);
+  const [gstFiveRatePercent, setGstFiveRatePercent] = useState<number>(5);
+  const [gstEighteenRatePercent, setGstEighteenRatePercent] = useState<number>(18);
+  const [shareLock, setShareLock] = useState<'A' | 'B' | 'none'>('none');
   const components: QuoteComponent[] = (defaultComponents as unknown) as QuoteComponent[];
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -64,6 +74,8 @@ export default function SolarPricingPage() {
   const [customerInfo, setCustomerInfo] = useState({ name: "", phone: "", address: "" });
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<{ open: boolean; message: string; severity: "success" | "error" }>({ open: false, message: "", severity: "success" });
+  const [serverReady, setServerReady] = useState<boolean | null>(null);
+  const [serverMissingEnv, setServerMissingEnv] = useState<string[]>([]);
 
   const salesPrintRef = useRef<HTMLDivElement>(null);
   const customerPrintRef = useRef<HTMLDivElement>(null);
@@ -73,6 +85,87 @@ export default function SolarPricingPage() {
     setTodayString(new Date().toLocaleDateString());
   }, []);
 
+  // Persist GST settings to localStorage so preferences survive reloads
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem('gstConfig');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed.share === 'number') setGstFiveShare(parsed.share);
+        if (typeof parsed.rateA === 'number') setGstFiveRatePercent(parsed.rateA);
+        if (typeof parsed.rateB === 'number') setGstEighteenRatePercent(parsed.rateB);
+        if (parsed.lock === 'A' || parsed.lock === 'B' || parsed.lock === 'none') setShareLock(parsed.lock);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('gstConfig', JSON.stringify({ share: gstFiveShare, rateA: gstFiveRatePercent, rateB: gstEighteenRatePercent, lock: shareLock }));
+    } catch {}
+  }, [gstFiveShare, gstFiveRatePercent, gstEighteenRatePercent, shareLock]);
+
+  // Persist Sales Incentive percent so preference survives reloads
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem('salesIncentivePercent');
+      if (saved !== null) {
+        const v = parseFloat(saved);
+        if (!isNaN(v)) setSalespersonIncentivePercent(v);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('salesIncentivePercent', String(salespersonIncentivePercent));
+    } catch {}
+  }, [salespersonIncentivePercent]);
+
+  // Persist incentive mode and fixed amount
+  useEffect(() => {
+    try {
+      const m = window.localStorage.getItem('salesIncentiveMode');
+      if (m === 'percent' || m === 'fixed') setSalespersonIncentiveMode(m);
+      const fixed = window.localStorage.getItem('salesIncentiveFixed');
+      if (fixed !== null) {
+        const v = parseFloat(fixed);
+        if (!isNaN(v)) setSalespersonIncentiveFixed(v);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('salesIncentiveMode', salespersonIncentiveMode);
+      window.localStorage.setItem('salesIncentiveFixed', String(salespersonIncentiveFixed));
+    } catch {}
+  }, [salespersonIncentiveMode, salespersonIncentiveFixed]);
+
+  // Check server-side readiness (required envs for PDF upload / WhatsApp)
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/quote');
+        const data = await res.json();
+        if (!mounted) return;
+        if (data?.ok) {
+          setServerReady(true);
+          setServerMissingEnv([]);
+        } else {
+          setServerReady(false);
+          setServerMissingEnv(data?.missingEnv || []);
+        }
+      } catch {
+        if (!mounted) return;
+        setServerReady(false);
+        setServerMissingEnv([]);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
   const {
     basePrice,
     marginPrice,
@@ -80,23 +173,46 @@ export default function SolarPricingPage() {
     heightPrice,
     outOfVnsPrice,
     subtotal,
+    gst5Amount,
+    gst18Amount,
     gstAmount,
+    salespersonIncentiveAmount,
+    companyRetainedMargin,
     total,
   } = useMemo(() => {
     if (!selectedProduct)
-      return { basePrice: 0, marginPrice: extraMargin, wirePrice: 0, heightPrice: 0, outOfVnsPrice: 0, subtotal: 0, gstAmount: 0, total: 0 };
+      return { basePrice: 0, marginPrice: extraMargin, wirePrice: 0, heightPrice: 0, outOfVnsPrice: 0, subtotal: 0, gst5Amount: 0, gst18Amount: 0, gstAmount: 0, total: 0, salespersonIncentiveAmount: 0, companyRetainedMargin: 0 };
     const basePriceVal = selectedProduct.price;
     const marginPriceVal = extraMargin;
     const wirePriceVal = extraWireChecked ? extraWireLength * selectedProduct.wire : 0;
     // Extra Height Cost = (Extra Height) × (Rate per ft/m) × (System kW)
     const heightPriceVal = extraHeightChecked ? extraHeightValue * EXTRA_HEIGHT_RATE * selectedProduct.kWp : 0;
-    const outOfVnsPriceVal = location !== "Varanasi" ? selectedProduct.outOfVns : 0;
+    // For locations outside Varanasi, use editable out-of-Varanasi fee (default 5000).
+    const outOfVnsPriceVal = location !== "Varanasi"
+      ? (typeof outOfVnsFee === 'number' && outOfVnsFee > 0 ? outOfVnsFee : (selectedProduct.outOfVns || 5000))
+      : 0;
 
     const subtotalVal = basePriceVal + marginPriceVal + wirePriceVal + heightPriceVal + outOfVnsPriceVal;
-    const gstAmountVal = +(subtotalVal * GST_RATE).toFixed(2);
+    // GST split (configurable): use gstFiveShare and configured rates
+    const share5Local = Math.max(0, Math.min(100, gstFiveShare)) / 100;
+    const share18Local = 1 - share5Local;
+    const gst5Val = +(subtotalVal * share5Local * (gstFiveRatePercent / 100)).toFixed(2);
+    const gst18Val = +(subtotalVal * share18Local * (gstEighteenRatePercent / 100)).toFixed(2);
+    const gstAmountVal = +(gst5Val + gst18Val).toFixed(2);
     const totalVal = +(subtotalVal + gstAmountVal).toFixed(2);
-    return { basePrice: basePriceVal, marginPrice: marginPriceVal, wirePrice: wirePriceVal, heightPrice: heightPriceVal, outOfVnsPrice: outOfVnsPriceVal, subtotal: subtotalVal, gstAmount: gstAmountVal, total: totalVal };
-  }, [selectedProduct, extraMargin, extraWireChecked, extraWireLength, extraHeightChecked, extraHeightValue, location]);
+    // Sales incentive is taken from the margin (company profit). Compute incentive amount and company retained margin.
+    let salespersonIncentiveAmountVal = 0;
+    if (salespersonIncentiveMode === 'percent') {
+      const incentiveShare = Math.max(0, Math.min(100, salespersonIncentivePercent)) / 100;
+      salespersonIncentiveAmountVal = +(marginPriceVal * incentiveShare).toFixed(2);
+    } else {
+      // fixed amount — cannot exceed the margin
+      salespersonIncentiveAmountVal = Math.max(0, Math.min(marginPriceVal, +(salespersonIncentiveFixed || 0)));
+      salespersonIncentiveAmountVal = +salespersonIncentiveAmountVal.toFixed(2);
+    }
+    const companyRetainedMarginVal = +(marginPriceVal - salespersonIncentiveAmountVal).toFixed(2);
+    return { basePrice: basePriceVal, marginPrice: marginPriceVal, wirePrice: wirePriceVal, heightPrice: heightPriceVal, outOfVnsPrice: outOfVnsPriceVal, subtotal: subtotalVal, gst5Amount: gst5Val, gst18Amount: gst18Val, gstAmount: gstAmountVal, total: totalVal, salespersonIncentiveAmount: salespersonIncentiveAmountVal, companyRetainedMargin: companyRetainedMarginVal };
+  }, [selectedProduct, extraMargin, extraWireChecked, extraWireLength, extraHeightChecked, extraHeightValue, location, salespersonIncentivePercent, salespersonIncentiveMode, salespersonIncentiveFixed]);
 
   const safeDiscount = Math.max(0, discount || 0);
   const grandTotal = Math.max(0, +(total - safeDiscount).toFixed(2));
@@ -127,7 +243,11 @@ export default function SolarPricingPage() {
   const buildQuotePayload = () => {
     if (!selectedProduct) return null;
     const customerSubtotal = basePrice + marginPrice + wirePrice + heightPrice + outOfVnsPrice;
-    const customerGst = +(customerSubtotal * GST_RATE).toFixed(2);
+    const share5 = Math.max(0, Math.min(100, gstFiveShare)) / 100;
+    const share18 = 1 - share5;
+    const customerGst5 = +(customerSubtotal * share5 * (gstFiveRatePercent / 100)).toFixed(2);
+    const customerGst18 = +(customerSubtotal * share18 * (gstEighteenRatePercent / 100)).toFixed(2);
+    const customerGst = +(customerGst5 + customerGst18).toFixed(2);
     const customerTotal = +(customerSubtotal + customerGst).toFixed(2);
     return {
       customerInfo,
@@ -143,23 +263,36 @@ export default function SolarPricingPage() {
         outOfVnsPrice,
         subtotal: customerSubtotal,
         gstAmount: customerGst,
-        total: customerTotal,
-        discount: safeDiscount,
-        grandTotal: Math.max(0, +(customerTotal - safeDiscount).toFixed(2)),
+        gst5Amount: customerGst5,
+        gst18Amount: customerGst18,
+        gstConfig: { share5Percent: gstFiveShare, gst5RatePercent: gstFiveRatePercent, gst18RatePercent: gstEighteenRatePercent },
+          total: customerTotal,
+          discount: safeDiscount,
+          grandTotal: Math.max(0, +(customerTotal - safeDiscount).toFixed(2)),
+          salespersonIncentiveMode: salespersonIncentiveMode,
+          salespersonIncentivePercent: salespersonIncentivePercent,
+          salespersonIncentiveFixed: salespersonIncentiveFixed,
+          salespersonIncentiveAmount: salespersonIncentiveAmount,
+          companyRetainedMargin: companyRetainedMargin,
       },
       components,
+      inverterCapacityKw: selectedProduct.kWp,
     };
   };
 
   const saveQuoteRecord = async (payload: any) => {
     try {
       await fetch("/api/quotes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-    } catch (e) {
-      console.error("Failed to save quote record", e);
+    } catch {
+      console.error("Failed to save quote record");
     }
   };
 
   const sendWhatsApp = async () => {
+    if (serverReady === false) {
+      setNotification({ open: true, message: `Server not configured for WhatsApp/pdf upload. Missing: ${serverMissingEnv.join(', ') || 'envs'}`, severity: 'error' });
+      return;
+    }
     if (!customerInfo.phone || !/^\d{10}$/.test(customerInfo.phone)) {
       setNotification({ open: true, message: "Please enter a valid 10-digit phone number.", severity: "error" });
       return;
@@ -223,6 +356,23 @@ export default function SolarPricingPage() {
     exit: { opacity: 0, y: 20, transition: { duration: 0.3 } },
   } as const;
 
+  // Return the exact product arrays for the selected supplier (no programmatic filtering)
+  const getSupplierProducts = () => {
+    const supplierMap: { [key: string]: Product[] } = {
+      'tata': productsBySupplier.tata,
+      'waaree-topcon': productsBySupplier.waareeTopcon,
+      'adani-topcon': productsBySupplier.adaniTopcon,
+      'premier-topcon': productsBySupplier.premierTopcon,
+      'waaree-dcr': productsBySupplier.waareeHybridDcrBattery,
+      'waaree-dcr-nobattery': productsBySupplier.waareeHybridDcrNoBattery,
+      'waaree-ndcr': productsBySupplier.waareeHybridNDcrBattery,
+      'waaree-ndcr-nobattery': productsBySupplier.waareeHybridNDcrNoBattery,
+    };
+    return supplierMap[selectedSupplier] || products;
+  };
+
+  const supplierProducts = getSupplierProducts();
+
   return (
     <>
       <Box sx={{ p: { xs: 2, sm: 4 }, bgcolor: "grey.50", minHeight: "100vh" }}>
@@ -230,13 +380,80 @@ export default function SolarPricingPage() {
           <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
             <Image src={companyDetails.logo} alt="Arpit Solar Logo" width={180} height={60} priority />
           </Box>
-          <Typography variant="h4" component="h1" sx={{ mb: 4, textAlign: "center", fontWeight: "bold" }}>
+          <Typography variant="h4" component="h1" sx={{ mb: 1, textAlign: "center", fontWeight: "bold" }}>
             <SolarPower sx={{ verticalAlign: "middle" }} /> Solar Pricing Calculator
           </Typography>
+          <Typography variant="body2" sx={{ textAlign: "center", color: "text.secondary", mb: 3 }}>
+            Select your product type and configure your quote
+          </Typography>
+
+          {/* Product Type Selector */}
+          <Box sx={{ mb: 4 }}>
+            <Card sx={{ borderRadius: 2, boxShadow: 2 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
+                  🔧 Select Product Type
+                </Typography>
+                <Grid container spacing={2}>
+                  {SupplierTabs.map((supplier) => (
+                    <Grid item xs={12} sm={6} md={3} key={supplier.id}>
+                      <Paper
+                        onClick={() => {
+                          setSelectedSupplier(supplier.id);
+                          setSelectedProduct(null); // Reset selected product
+                        }}
+                        sx={{
+                          p: 2,
+                          cursor: "pointer",
+                          border: selectedSupplier === supplier.id ? `3px solid ${supplier.color}` : "2px solid #e0e0e0",
+                          backgroundColor: selectedSupplier === supplier.id ? `${supplier.color}15` : "#fff",
+                          borderRadius: 2,
+                          transition: "all 0.3s ease",
+                          "&:hover": {
+                            boxShadow: 3,
+                            transform: "translateY(-2px)",
+                          },
+                        }}
+                      >
+                        <Typography
+                          variant="subtitle2"
+                          sx={{
+                            fontWeight: "bold",
+                            color: supplier.color,
+                            mb: 0.5,
+                          }}
+                        >
+                          {supplier.label}
+                        </Typography>
+                        <Typography variant="caption" color="textSecondary">
+                          {supplier.description}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  ))}
+                </Grid>
+                <Box sx={{ mt: 3, pt: 2, borderTop: "1px solid #e0e0e0" }}>
+                  <Button
+                    href="/catalog"
+                    variant="outlined"
+                    fullWidth
+                    sx={{
+                      py: 1.5,
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      fontSize: "1rem",
+                    }}
+                  >
+                    📋 View Complete Product Catalog
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
 
           <Grid container spacing={4}>
             {/* Price Breakdown - moved above all */}
-            <Grid>
+            <Grid item xs={12} sm={12} md={6}>
               <motion.div animate={{ scale: [1, 1.02, 1] }} transition={{ duration: 0.5 }}>
                 <Paper elevation={4} sx={{ borderRadius: 3, p: 3, background: 'linear-gradient(180deg, #ffffff 0%, #fafafa 100%)' }}>
                   <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -246,8 +463,8 @@ export default function SolarPricingPage() {
                     {[
                       { label: "Base Price", value: basePrice },
                       { label: "Extra Margin", value: marginPrice, bold: true },
-                      { label: "Vendor Margin (60%)", value: marginPrice * 0.6, indent: true },
-                      { label: "Salesperson Margin (40%)", value: marginPrice * 0.4, indent: true },
+                      { label: "Sales Incentive (from Margin)", value: salespersonIncentiveAmount, indent: true },
+                      { label: "Company Retained Margin (after incentive)", value: companyRetainedMargin, indent: true },
                       { label: "Extra Wire Cost", value: wirePrice },
                       { label: "Extra Height Cost", value: heightPrice },
                       { label: "Logistics & Delivery Fee", value: outOfVnsPrice },
@@ -261,9 +478,27 @@ export default function SolarPricingPage() {
                       ))}
                     <Divider sx={{ my: 1 }} />
                     <Box sx={{ display: "flex", justifyContent: "space-between" }}><Typography>Subtotal (Before GST):</Typography><Typography>{formatCurrency(subtotal)}</Typography></Box>
-                    <Box sx={{ display: "flex", justifyContent: "space-between" }}><Typography>GST (8.9%):</Typography><Typography>{formatCurrency(gstAmount)}</Typography></Box>
+                      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                          <Typography>{`Portion taxed @ ${gstFiveRatePercent}% (${gstFiveShare}% of subtotal):`}</Typography>
+                          <Typography>{formatCurrency(gst5Amount)}</Typography>
+                        </Box>
+                        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                          <Typography>{`Portion taxed @ ${gstEighteenRatePercent}% (${100 - gstFiveShare}% of subtotal):`}</Typography>
+                          <Typography>{formatCurrency(gst18Amount)}</Typography>
+                        </Box>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
+                          <Typography>Total GST (combined):</Typography>
+                          <Typography>{formatCurrency(gstAmount)}</Typography>
+                        </Box>
+                      </Box>
                     <Divider sx={{ my: 1 }} />
+                    <Typography variant="caption" color="text.secondary">GST calculation: {gstFiveShare}% of subtotal taxed at {gstFiveRatePercent}%, remainder taxed at {gstEighteenRatePercent}%. Effective GST = {subtotal > 0 ? ((gstAmount / subtotal) * 100).toFixed(2) : '0.00'}% of subtotal.</Typography>
                     <Box sx={{ display: "flex", justifyContent: "space-between" }}><Typography variant="h6" fontWeight="bold">Total (After GST):</Typography><Typography variant="h6" fontWeight="bold">{formatCurrency(total)}</Typography></Box>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
+                      <Typography>Suggested Inverter Capacity:</Typography>
+                      <Typography>{selectedProduct ? `${selectedProduct.kWp} kWp` : '-'}</Typography>
+                    </Box>
                     {safeDiscount > 0 && (
                       <Box sx={{ display: "flex", justifyContent: "space-between", color: "success.main" }}>
                         <Typography variant="h6" fontWeight="bold">Discount:</Typography>
@@ -277,14 +512,14 @@ export default function SolarPricingPage() {
               </motion.div>
             </Grid>
             {/* Left column - Configuration */}
-            <Grid>
+            <Grid item xs={12} sm={12} md={6}>
               <Card sx={{ boxShadow: 3, borderRadius: 3 }}>
                 <CardContent sx={{ p: 3 }}>
                   <Typography variant="h6" sx={{ mb: 3 }}>
                     Configuration
                   </Typography>
                   <Grid container spacing={3}>
-                    <Grid>
+                    <Grid item xs={12}>
                       <FormControl fullWidth sx={{ minWidth: 320 }}>
                         <InputLabel id="product-select-label">Select Product</InputLabel>
                         <Select
@@ -292,17 +527,22 @@ export default function SolarPricingPage() {
                           label="Select Product"
                           size="medium"
                           sx={{ height: 56 }}
-                          value={selectedProduct ? `${selectedProduct.kWp}-${selectedProduct.phase}` : ""}
-                          onChange={(e: SelectChangeEvent) => {
-                            const [kWp, phase] = e.target.value.split("-").map(parseFloat);
-                            setSelectedProduct(
-                              products.find((p) => p.kWp === kWp && p.phase === phase) || products[0]
+                          value={(() => {
+                            if (!selectedProduct) return "";
+                            const idx = supplierProducts.findIndex(
+                              (p) => p.kWp === selectedProduct.kWp && p.phase === selectedProduct.phase && p.price === selectedProduct.price && p.qty === selectedProduct.qty && p.supplier === selectedProduct.supplier
                             );
+                            return idx === -1 ? "" : String(idx);
+                          })()}
+                          onChange={(e: SelectChangeEvent) => {
+                            const idx = parseInt(e.target.value as string, 10);
+                            if (!isNaN(idx) && supplierProducts[idx]) setSelectedProduct(supplierProducts[idx]);
+                            else setSelectedProduct(null);
                           }}
                         >
                           <MenuItem value=""><em>Select Product</em></MenuItem>
-                          {products.map((p) => (
-                            <MenuItem key={`${p.kWp}-${p.phase}`} value={`${p.kWp}-${p.phase}`}>{
+                          {supplierProducts.map((p, idx) => (
+                            <MenuItem key={`${p.kWp}-${p.phase}-${idx}`} value={String(idx)}>{
                               `${p.kWp} kWp • Phase ${p.phase} • ${formatCurrency(p.price)}`
                             }</MenuItem>
                           ))}
@@ -310,7 +550,7 @@ export default function SolarPricingPage() {
                       </FormControl>
                     </Grid>
 
-                    <Grid>
+                    <Grid item xs={12}>
                       <TextField
                         label="Salesperson Name"
                         fullWidth
@@ -319,7 +559,7 @@ export default function SolarPricingPage() {
                       />
                     </Grid>
 
-                    <Grid>
+                    <Grid item xs={12}>
                       <TextField
                         label="Extra Margin"
                         type="number"
@@ -329,8 +569,8 @@ export default function SolarPricingPage() {
                         InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
                       />
                     </Grid>
-
-                    <Grid>
+                    {/* Incentive mode is internal — managed in admin portal */}
+                    <Grid item xs={12}>
                       <TextField
                         label="Discount"
                         type="number"
@@ -341,7 +581,9 @@ export default function SolarPricingPage() {
                       />
                     </Grid>
 
-                    <Grid>
+                    {/* GST configuration is internal — moved to admin portal */}
+
+                    <Grid item xs={12}>
                       <FormControl fullWidth>
                         <InputLabel id="location-select-label">Location</InputLabel>
                         <Select
@@ -355,8 +597,21 @@ export default function SolarPricingPage() {
                         </Select>
                       </FormControl>
                     </Grid>
+                    {location === 'Other' && (
+                      <Grid item xs={12}>
+                        <TextField
+                          label="Out-of-Varanasi Fee"
+                          type="number"
+                          fullWidth
+                          value={outOfVnsFee === 0 ? "" : outOfVnsFee}
+                          onChange={(e) => setOutOfVnsFee(Math.max(0, parseFloat(e.target.value) || 0))}
+                          InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
+                          helperText="Default ₹5000; editable for other locations"
+                        />
+                      </Grid>
+                    )}
 
-                    <Grid>
+                    <Grid item xs={12}>
                       <FormControlLabel
                         control={<Checkbox checked={extraWireChecked} onChange={() => setExtraWireChecked(!extraWireChecked)} />}
                         label={`Add Extra Wire (@ ${formatCurrency(selectedProduct ? selectedProduct.wire : 0)}/m)`}
@@ -377,7 +632,7 @@ export default function SolarPricingPage() {
                       </AnimatePresence>
                     </Grid>
 
-                    <Grid>
+                    <Grid xs={12}>
                       <FormControlLabel
                         control={<Checkbox checked={extraHeightChecked} onChange={() => setExtraHeightChecked(!extraHeightChecked)} />}
                         label={`Include Extra Height (@ ${formatCurrency(EXTRA_HEIGHT_RATE)} per ft/m × kW)`}
@@ -398,13 +653,18 @@ export default function SolarPricingPage() {
                       </AnimatePresence>
                     </Grid>
 
-                    <Grid>
+                    <Grid xs={12}>
                       <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
                         <Button variant="outlined" color="error" onClick={handleReset} startIcon={<RestartAlt />}>Reset All</Button>
                         <Button variant="contained" onClick={async () => { await saveQuoteRecord({ ...buildQuotePayload(), channel: 'sales_print', taxRate: 0.089, currency: 'INR' }); handlePrintSales?.(); }} startIcon={<Print />}>Print Sales Copy</Button>
                         <Button variant="contained" onClick={() => handleOpenDialog("customerPrint")} startIcon={<PictureAsPdf />}>Print Customer Copy</Button>
-                        <Button variant="contained" color="success" onClick={() => handleOpenDialog("whatsapp")} startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <WhatsApp />} disabled={loading}>{loading ? "Sending..." : "Send on WhatsApp"}</Button>
+                        <Button variant="contained" color="success" onClick={() => handleOpenDialog("whatsapp")} startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <WhatsApp />} disabled={loading || serverReady === false}>{loading ? "Sending..." : "Send on WhatsApp"}</Button>
                       </Box>
+                      {serverReady === false && (
+                        <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
+                          Server not configured for sending/saving quotes. Missing: {serverMissingEnv.join(', ') || 'required envs'}
+                        </Typography>
+                      )}
                     </Grid>
                   </Grid>
                 </CardContent>
@@ -414,14 +674,14 @@ export default function SolarPricingPage() {
             {/* (moved) */}
 
             {/* Components Preview */}
-            <Grid>
+            <Grid item xs={12}>
               <Paper elevation={1} sx={{ borderRadius: 3, p: 3 }}>
                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>Included Components</Typography>
                 <TableContainer component={Paper} variant="outlined">
                   <Table size="small">
                     <TableBody>
-                      {components.map((c) => (
-                        <TableRow key={`${c.name}-${c.quantity}`}>
+                      {components.map((c, idx) => (
+                        <TableRow key={`comp-main-${idx}-${c.name}`}>
                           <TableCell>{c.name}</TableCell>
                           <TableCell>{[c.brand, c.spec].filter(Boolean).join(' ')}</TableCell>
                           <TableCell align="right">{c.quantity}</TableCell>
@@ -466,6 +726,8 @@ export default function SolarPricingPage() {
             <Typography variant="body2">{nowString}</Typography>
             <Typography variant="body2">Salesperson: {salespersonName || "N/A"}</Typography>
             <Typography variant="body2">Location: {location}</Typography>
+            <Typography variant="body2">Suggested Inverter Capacity: {selectedProduct ? `${selectedProduct.kWp} kWp` : 'N/A'}</Typography>
+            <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 600 }}>Effective GST: {subtotal > 0 ? ((gstAmount / subtotal) * 100).toFixed(2) : '0.00'}%</Typography>
           </Box>
           <Divider sx={{ my: 1 }} />
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
@@ -494,8 +756,8 @@ export default function SolarPricingPage() {
           <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
             <Table size="small">
               <TableBody>
-                {components.map((c) => (
-                  <TableRow key={`sales-${c.name}-${c.quantity}`}>
+                {components.map((c, idx) => (
+                  <TableRow key={`comp-sales-${idx}-${c.name}`}>
                     <TableCell>{c.name}</TableCell>
                     <TableCell>{[c.brand, c.spec].filter(Boolean).join(' ')}</TableCell>
                     <TableCell align="right">{c.quantity}</TableCell>
@@ -506,23 +768,27 @@ export default function SolarPricingPage() {
           </TableContainer>
           <Typography variant="h6" gutterBottom>Price Breakdown</Typography>
           <TableContainer component={Paper} variant="outlined">
-            <Table size="small">
-              <TableBody>
+                <Table size="small">
+                <TableBody>
                 <TableRow><TableCell>Base Price</TableCell><TableCell align="right">{formatCurrency(basePrice)}</TableCell></TableRow>
                 <TableRow><TableCell>Extra Margin</TableCell><TableCell align="right">{formatCurrency(marginPrice)}</TableCell></TableRow>
-                <TableRow><TableCell sx={{ pl: 4, color: "text.secondary" }}>Vendor Margin (60%)</TableCell><TableCell align="right" sx={{ color: "text.secondary" }}>{formatCurrency(marginPrice * 0.6)}</TableCell></TableRow>
-                <TableRow><TableCell sx={{ pl: 4, color: "text.secondary" }}>Salesperson Margin (40%)</TableCell><TableCell align="right" sx={{ color: "text.secondary" }}>{formatCurrency(marginPrice * 0.4)}</TableCell></TableRow>
+                <TableRow><TableCell sx={{ pl: 4, color: "text.secondary" }}>Sales Incentive (from Margin)</TableCell><TableCell align="right" sx={{ color: "text.secondary" }}>{formatCurrency(salespersonIncentiveAmount)}</TableCell></TableRow>
+                <TableRow><TableCell sx={{ pl: 4, color: "text.secondary" }}>Company Retained Margin</TableCell><TableCell align="right" sx={{ color: "text.secondary" }}>{formatCurrency(companyRetainedMargin)}</TableCell></TableRow>
                 {wirePrice > 0 && (<TableRow><TableCell>Extra Wire Cost</TableCell><TableCell align="right">{formatCurrency(wirePrice)}</TableCell></TableRow>)}
                 {heightPrice > 0 && (<TableRow><TableCell>Extra Height Cost (H × Rate × kW)</TableCell><TableCell align="right">{formatCurrency(heightPrice)}</TableCell></TableRow>)}
                 {outOfVnsPrice > 0 && (<TableRow><TableCell>Logistics & Delivery Fee</TableCell><TableCell align="right">{formatCurrency(outOfVnsPrice)}</TableCell></TableRow>)}
                 <TableRow><TableCell sx={{ fontWeight: 600 }}>Subtotal (Before GST)</TableCell><TableCell align="right" sx={{ fontWeight: 600 }}>{formatCurrency(subtotal)}</TableCell></TableRow>
-                <TableRow><TableCell>GST (8.9%)</TableCell><TableCell align="right">{formatCurrency(gstAmount)}</TableCell></TableRow>
+                <TableRow><TableCell>{`Portion taxed @ ${gstFiveRatePercent}% (${gstFiveShare}% of subtotal)`}</TableCell><TableCell align="right">{formatCurrency(gst5Amount)}</TableCell></TableRow>
+                <TableRow><TableCell>{`Portion taxed @ ${gstEighteenRatePercent}% (${100 - gstFiveShare}% of subtotal)`}</TableCell><TableCell align="right">{formatCurrency(gst18Amount)}</TableCell></TableRow>
+                <TableRow><TableCell>{`GST (combined) — Effective ${subtotal > 0 ? ((gstAmount / subtotal) * 100).toFixed(2) : '0.00'}%`}</TableCell><TableCell align="right">{formatCurrency(gstAmount)}</TableCell></TableRow>
                 <TableRow><TableCell>Total (After GST)</TableCell><TableCell align="right">{formatCurrency(total)}</TableCell></TableRow>
                 {safeDiscount > 0 && (<TableRow><TableCell sx={{ color: "success.main", fontWeight: 600 }}>Discount</TableCell><TableCell align="right" sx={{ color: "success.main", fontWeight: 600 }}>-{formatCurrency(safeDiscount)}</TableCell></TableRow>)}
                 <TableRow sx={{ '& > *': { fontWeight: 700 } }}><TableCell>Grand Total</TableCell><TableCell align="right">{formatCurrency(grandTotal)}</TableCell></TableRow>
               </TableBody>
             </Table>
           </TableContainer>
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="caption">GST split: {gstFiveShare}% of subtotal @ {gstFiveRatePercent}% and {100 - gstFiveShare}% @ {gstEighteenRatePercent}% — effective {(subtotal > 0 ? ((gstAmount / subtotal) * 100).toFixed(2) : "0.00")}%</Typography>
           <Divider sx={{ my: 2 }} />
           <Typography variant="caption">Internal copy for sales records. Not intended for customer distribution.</Typography>
         </div>
@@ -545,6 +811,8 @@ export default function SolarPricingPage() {
               <Typography variant="body2">Contact: 9044555572</Typography>
               <Typography variant="body2">Email: info@arpitsolar.com</Typography>
             </Box>
+              <Typography variant="body2">Suggested Inverter Capacity: {selectedProduct ? `${selectedProduct.kWp} kWp` : 'N/A'}</Typography>
+              <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 600 }}>Effective GST: {subtotal > 0 ? ((gstAmount / subtotal) * 100).toFixed(2) : '0.00'}%</Typography>
           </Box>
           <Divider sx={{ my: 1 }} />
           <Typography variant="h6" gutterBottom>Customer Details</Typography>
@@ -566,8 +834,8 @@ export default function SolarPricingPage() {
           <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
             <Table size="small">
               <TableBody>
-                {components.map((c) => (
-                  <TableRow key={`cust-${c.name}-${c.quantity}`}>
+                {components.map((c, idx) => (
+                  <TableRow key={`comp-cust-${idx}-${c.name}`}>
                     <TableCell>{c.name}</TableCell>
                     <TableCell>{[c.brand, c.spec].filter(Boolean).join(' ')}</TableCell>
                     <TableCell align="right">{c.quantity}</TableCell>
@@ -578,20 +846,26 @@ export default function SolarPricingPage() {
           </TableContainer>
           <Typography variant="h6" gutterBottom>Price Summary</Typography>
           <TableContainer component={Paper} variant="outlined">
-            <Table size="small">
-              <TableBody>
+                <Table size="small">
+                <TableBody>
                 <TableRow><TableCell>Base Price</TableCell><TableCell align="right">{formatCurrency(basePrice + marginPrice)}</TableCell></TableRow>
+                <TableRow><TableCell>Sales Incentive (from Margin)</TableCell><TableCell align="right">{formatCurrency(salespersonIncentiveAmount)}</TableCell></TableRow>
+                <TableRow><TableCell>Company Retained Margin</TableCell><TableCell align="right">{formatCurrency(companyRetainedMargin)}</TableCell></TableRow>
                 {wirePrice > 0 && (<TableRow><TableCell>Extra Wire Cost</TableCell><TableCell align="right">{formatCurrency(wirePrice)}</TableCell></TableRow>)}
                 {heightPrice > 0 && (<TableRow><TableCell>Extra Height Cost</TableCell><TableCell align="right">{formatCurrency(heightPrice)}</TableCell></TableRow>)}
                 {outOfVnsPrice > 0 && (<TableRow><TableCell>Logistics & Delivery Fee</TableCell><TableCell align="right">{formatCurrency(outOfVnsPrice)}</TableCell></TableRow>)}
                 <TableRow><TableCell sx={{ fontWeight: 600 }}>Subtotal (Before GST)</TableCell><TableCell align="right" sx={{ fontWeight: 600 }}>{formatCurrency(subtotal)}</TableCell></TableRow>
-                <TableRow><TableCell>GST (8.9%)</TableCell><TableCell align="right">{formatCurrency(gstAmount)}</TableCell></TableRow>
+                <TableRow><TableCell>{`Portion taxed @ ${gstFiveRatePercent}% (${gstFiveShare}% of subtotal)`}</TableCell><TableCell align="right">{formatCurrency(gst5Amount)}</TableCell></TableRow>
+                <TableRow><TableCell>{`Portion taxed @ ${gstEighteenRatePercent}% (${100 - gstFiveShare}% of subtotal)`}</TableCell><TableCell align="right">{formatCurrency(gst18Amount)}</TableCell></TableRow>
+                <TableRow><TableCell>{`GST (combined) — Effective ${subtotal > 0 ? ((gstAmount / subtotal) * 100).toFixed(2) : '0.00'}%`}</TableCell><TableCell align="right">{formatCurrency(gstAmount)}</TableCell></TableRow>
                 <TableRow><TableCell>Total (After GST)</TableCell><TableCell align="right">{formatCurrency(total)}</TableCell></TableRow>
                 {safeDiscount > 0 && (<TableRow><TableCell sx={{ color: "success.main", fontWeight: 600 }}>Discount</TableCell><TableCell align="right" sx={{ color: "success.main", fontWeight: 600 }}>-{formatCurrency(safeDiscount)}</TableCell></TableRow>)}
                 <TableRow sx={{ '& > *': { fontWeight: 700 } }}><TableCell>Grand Total</TableCell><TableCell align="right">{formatCurrency(grandTotal)}</TableCell></TableRow>
               </TableBody>
             </Table>
           </TableContainer>
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="caption">GST split: {gstFiveShare}% of subtotal @ {gstFiveRatePercent}% and {100 - gstFiveShare}% @ {gstEighteenRatePercent}% — effective {(subtotal > 0 ? ((gstAmount / subtotal) * 100).toFixed(2) : "0.00")}%</Typography>
           <Divider sx={{ my: 2 }} />
           <Typography variant="caption">Thank you for considering Arpit Solar.</Typography>
         </div>

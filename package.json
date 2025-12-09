@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:db": "node scripts/seed-db.js"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
@@ -24,7 +25,16 @@
     "puppeteer-core": "^24.24.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-to-print": "^3.1.1"
+    "react-to-print": "^3.1.1",
+    "sql.js": "^1.6.2"
+  },
+  "dependenciesMeta": {
+    "better-sqlite3": {
+      "optional": true
+    }
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^8.4.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

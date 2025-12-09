@@ -6,6 +6,7 @@ export interface Product {
   price: number;
   wire: number;
   outOfVns: number;
+  supplier?: string;
 }
 
 export type QuoteComponent = {
@@ -22,6 +23,13 @@ export type QuotePricing = {
   outOfVnsPrice: number;
   subtotal: number;
   gstAmount: number;
+  gst5Amount?: number;
+  gst18Amount?: number;
+  gstConfig?: {
+    share5Percent: number;
+    gst5RatePercent: number;
+    gst18RatePercent: number;
+  };
   total: number;
   discount?: number;
   grandTotal: number;
