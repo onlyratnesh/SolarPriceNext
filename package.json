@@ -21,6 +21,7 @@
     "@supabase/supabase-js": "^2.75.0",
     "zod": "^3.23.8",
     "axios": "^1.12.2",
+    "nodemailer": "^6.9.9",
     "framer-motion": "^12.23.24",
     "next": "15.5.4",
     "puppeteer-core": "^24.24.1",
