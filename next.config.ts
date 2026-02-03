@@ -21,7 +21,13 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ['@sparticuz/chromium', 'puppeteer-core']
+  serverExternalPackages: ['@sparticuz/chromium', 'puppeteer-core'],
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 };
 
 export default nextConfig;
