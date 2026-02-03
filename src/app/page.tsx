@@ -1,875 +1,715 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Select,
-  MenuItem,
-  InputLabel,
-  FormControl,
-  TextField,
-  Checkbox,
-  FormControlLabel,
-  Button,
-  Card,
-  CardContent,
-  Typography,
   Box,
-  Paper,
-  InputAdornment,
-  Divider,
+  Typography,
+  TextField,
+  Button,
+  IconButton,
   Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
   DialogTitle,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableRow,
+  DialogContent,
+  DialogActions,
   Snackbar,
   Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  InputAdornment,
   CircularProgress,
-  SelectChangeEvent,
-  Grid,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Chip,
+  Tooltip,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
-import Image from "next/image";
-import { SolarPower, PriceCheck, RestartAlt, PictureAsPdf, WhatsApp, Print } from "@mui/icons-material";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  Add,
+  Delete,
+  Edit,
+  Print,
+  Save,
+  RestartAlt,
+  SolarPower,
+  BatteryChargingFull,
+  SettingsInputComponent,
+  Water,
+  AdminPanelSettings,
+  ExpandMore,
+  Person,
+  Settings,
+  AttachMoney,
+  ListAlt,
+  WhatsApp,
+  Email,
+  AddCircle,
+} from "@mui/icons-material";
 import { useReactToPrint } from "react-to-print";
-// Note: GST and incentive UI elements are internal and removed from the main UI.
-import { products, productsBySupplier, companyDetails, EXTRA_HEIGHT_RATE } from "../data/priceList";
-import { defaultComponents } from "../data/components";
-import { formatCurrency } from "../lib/utils";
-import { SupplierTabs } from "../components/ProductSelector";
-import type { Product, QuoteComponent } from "../types/quote";
+import Link from "next/link";
+import {
+  companyDetails,
+  defaultTerms,
+  defaultComponents,
+  gstConfig,
+  defaultSubsidy,
+  calculateSavings,
+  generateQuoteNumber,
+} from "@/lib/companyDetails";
+import type { QuotationComponent } from "@/types";
 
-type DialogMode = "whatsapp" | "customerPrint";
+// System type configuration
+const systemTypes = [
+  { id: "On-grid", name: "On-grid", icon: <SolarPower fontSize="small" />, color: "#4CAF50" },
+  { id: "Off-grid", name: "Off-grid", icon: <BatteryChargingFull fontSize="small" />, color: "#FF9800" },
+  { id: "Hybrid", name: "Hybrid", icon: <SettingsInputComponent fontSize="small" />, color: "#2196F3" },
+  { id: "VFD/Drive", name: "VFD/Drive", icon: <Water fontSize="small" />, color: "#9C27B0" },
+];
 
-export default function SolarPricingPage() {
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedSupplier, setSelectedSupplier] = useState<string>("tata");
-  const [extraMargin, setExtraMargin] = useState<number>(0);
-  const [salespersonIncentivePercent, setSalespersonIncentivePercent] = useState<number>(0);
-  const [salespersonIncentiveMode, setSalespersonIncentiveMode] = useState<'percent' | 'fixed'>('percent');
-  const [salespersonIncentiveFixed, setSalespersonIncentiveFixed] = useState<number>(0);
-  const [extraWireChecked, setExtraWireChecked] = useState<boolean>(false);
-  const [extraWireLength, setExtraWireLength] = useState<number>(0);
-  const [extraHeightChecked, setExtraHeightChecked] = useState<boolean>(false);
-  const [extraHeightValue, setExtraHeightValue] = useState<number>(0);
-  const [outOfVnsFee, setOutOfVnsFee] = useState<number>(5000);
-  const [discount, setDiscount] = useState<number>(0);
-  const [location, setLocation] = useState<string>("Varanasi");
-  const [salespersonName, setSalespersonName] = useState<string>("");
-  const [nowString, setNowString] = useState("");
-  const [todayString, setTodayString] = useState("");
-  const [gstFiveShare, setGstFiveShare] = useState<number>(70);
-  const [gstFiveRatePercent, setGstFiveRatePercent] = useState<number>(5);
-  const [gstEighteenRatePercent, setGstEighteenRatePercent] = useState<number>(18);
-  const [shareLock, setShareLock] = useState<'A' | 'B' | 'none'>('none');
-  const components: QuoteComponent[] = (defaultComponents as unknown) as QuoteComponent[];
+// Panel types
+const panelTypes = [
+  { value: "Monoperc", label: "Monoperc" },
+  { value: "Bifacial", label: "Bifacial" },
+  { value: "Topcon", label: "Topcon" },
+  { value: "Topcon Bifacial", label: "Topcon Bifacial" },
+  { value: "HJT", label: "HJT" },
+  { value: "DCR", label: "DCR" },
+  { value: "NDCR", label: "NDCR" },
+];
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<DialogMode>("whatsapp");
-  const [customerInfo, setCustomerInfo] = useState({ name: "", phone: "", address: "" });
+// Solar panel brands
+const panelBrands = ["Adani", "Tata", "Waaree", "Reliance", "Premier", "Emvee", "Vikram Solar", "Goldi Solar", "RenewSys", "Jakson", "Longi", "Jinko", "Canadian Solar", "Other"];
+
+// Inverter brands
+const inverterBrands = ["Polycab", "Shakti", "Growatt", "Sungrow", "Huawei", "Deye", "Servotech", "Luminous", "Other"];
+
+export default function QuotationBuilder() {
+  // Customer Details
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
+
+  // System Configuration
+  const [selectedSystemType, setSelectedSystemType] = useState("On-grid");
+  const [capacityKw, setCapacityKw] = useState<number>(3);
+  const [phase, setPhase] = useState<number>(1);
+
+  // Panel Configuration
+  const [panelWattage, setPanelWattage] = useState<number>(620);
+  const [panelBrand, setPanelBrand] = useState("Adani");
+  const [customPanelBrand, setCustomPanelBrand] = useState("");
+  const [panelType, setPanelType] = useState("Monoperc");
+  const effectivePanelBrand = panelBrand === "Other" ? customPanelBrand : panelBrand;
+
+  // Inverter Configuration
+  const [inverterBrand, setInverterBrand] = useState("Polycab");
+  const [customInverterBrand, setCustomInverterBrand] = useState("");
+  const [inverterModel, setInverterModel] = useState("3 KW On-Grid String");
+  const effectiveInverterBrand = inverterBrand === "Other" ? customInverterBrand : inverterBrand;
+
+  // Pricing
+  const [basePrice, setBasePrice] = useState<number>(165289.26);
+  const [gstRate, setGstRate] = useState<number>(gstConfig.compositeRate);
+  const [centralSubsidy, setCentralSubsidy] = useState<number>(defaultSubsidy.central);
+  const [stateSubsidy, setStateSubsidy] = useState<number>(defaultSubsidy.state);
+
+  // Extra Costs (Optional)
+  const [extraStructureEnabled, setExtraStructureEnabled] = useState(false);
+  const [extraStructureRate, setExtraStructureRate] = useState<number>(5); // Rate per watt
+
+  const [extraPanelsEnabled, setExtraPanelsEnabled] = useState(false);
+  const [extraPanelCount, setExtraPanelCount] = useState<number>(1);
+  const [extraPanelPrice, setExtraPanelPrice] = useState<number>(15000); // Per panel price
+
+  const [extraWireEnabled, setExtraWireEnabled] = useState(false);
+  const [extraWireLength, setExtraWireLength] = useState<number>(10); // in meters
+  const [extraWireRate, setExtraWireRate] = useState<number>(50); // Per meter rate
+
+  // Components (Bill of Materials)
+  const [components, setComponents] = useState<QuotationComponent[]>([]);
+  const [terms, setTerms] = useState<string[]>([]);
+
+  // UI State
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<{ open: boolean; message: string; severity: "success" | "error" }>({ open: false, message: "", severity: "success" });
-  const [serverReady, setServerReady] = useState<boolean | null>(null);
-  const [serverMissingEnv, setServerMissingEnv] = useState<string[]>([]);
+  const [editComponentDialog, setEditComponentDialog] = useState(false);
+  const [editingComponent, setEditingComponent] = useState<QuotationComponent | null>(null);
+  const [editingIndex, setEditingIndex] = useState<number>(-1);
+  const [addComponentDialog, setAddComponentDialog] = useState(false);
+  const [newComponent, setNewComponent] = useState<QuotationComponent>({ name: "", description: "", quantity: "1 Nos", make: "Standard", sort_order: 0 });
 
-  const salesPrintRef = useRef<HTMLDivElement>(null);
-  const customerPrintRef = useRef<HTMLDivElement>(null);
+  const printRef = useRef<HTMLDivElement>(null);
 
+  // Calculate number of panels needed
+  const numberOfPanels = useMemo(() => Math.ceil((capacityKw * 1000) / panelWattage), [capacityKw, panelWattage]);
+  const actualSystemSize = useMemo(() => +((numberOfPanels * panelWattage) / 1000).toFixed(2), [numberOfPanels, panelWattage]);
+
+  // Load default components when system type changes
   useEffect(() => {
-    setNowString(new Date().toLocaleString());
-    setTodayString(new Date().toLocaleDateString());
-  }, []);
-
-  // Persist GST settings to localStorage so preferences survive reloads
-  useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem('gstConfig');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (typeof parsed.share === 'number') setGstFiveShare(parsed.share);
-        if (typeof parsed.rateA === 'number') setGstFiveRatePercent(parsed.rateA);
-        if (typeof parsed.rateB === 'number') setGstEighteenRatePercent(parsed.rateB);
-        if (parsed.lock === 'A' || parsed.lock === 'B' || parsed.lock === 'none') setShareLock(parsed.lock);
-      }
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem('gstConfig', JSON.stringify({ share: gstFiveShare, rateA: gstFiveRatePercent, rateB: gstEighteenRatePercent, lock: shareLock }));
-    } catch {}
-  }, [gstFiveShare, gstFiveRatePercent, gstEighteenRatePercent, shareLock]);
-
-  // Persist Sales Incentive percent so preference survives reloads
-  useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem('salesIncentivePercent');
-      if (saved !== null) {
-        const v = parseFloat(saved);
-        if (!isNaN(v)) setSalespersonIncentivePercent(v);
-      }
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem('salesIncentivePercent', String(salespersonIncentivePercent));
-    } catch {}
-  }, [salespersonIncentivePercent]);
-
-  // Persist incentive mode and fixed amount
-  useEffect(() => {
-    try {
-      const m = window.localStorage.getItem('salesIncentiveMode');
-      if (m === 'percent' || m === 'fixed') setSalespersonIncentiveMode(m);
-      const fixed = window.localStorage.getItem('salesIncentiveFixed');
-      if (fixed !== null) {
-        const v = parseFloat(fixed);
-        if (!isNaN(v)) setSalespersonIncentiveFixed(v);
-      }
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem('salesIncentiveMode', salespersonIncentiveMode);
-      window.localStorage.setItem('salesIncentiveFixed', String(salespersonIncentiveFixed));
-    } catch {}
-  }, [salespersonIncentiveMode, salespersonIncentiveFixed]);
-
-  // Check server-side readiness (required envs for PDF upload / WhatsApp)
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const res = await fetch('/api/quote');
-        const data = await res.json();
-        if (!mounted) return;
-        if (data?.ok) {
-          setServerReady(true);
-          setServerMissingEnv([]);
-        } else {
-          setServerReady(false);
-          setServerMissingEnv(data?.missingEnv || []);
-        }
-      } catch {
-        if (!mounted) return;
-        setServerReady(false);
-        setServerMissingEnv([]);
-      }
-    })();
-    return () => { mounted = false; };
-  }, []);
-
-  const {
-    basePrice,
-    marginPrice,
-    wirePrice,
-    heightPrice,
-    outOfVnsPrice,
-    subtotal,
-    gst5Amount,
-    gst18Amount,
-    gstAmount,
-    salespersonIncentiveAmount,
-    companyRetainedMargin,
-    total,
-  } = useMemo(() => {
-    if (!selectedProduct)
-      return { basePrice: 0, marginPrice: extraMargin, wirePrice: 0, heightPrice: 0, outOfVnsPrice: 0, subtotal: 0, gst5Amount: 0, gst18Amount: 0, gstAmount: 0, total: 0, salespersonIncentiveAmount: 0, companyRetainedMargin: 0 };
-    const basePriceVal = selectedProduct.price;
-    const marginPriceVal = extraMargin;
-    const wirePriceVal = extraWireChecked ? extraWireLength * selectedProduct.wire : 0;
-    // Extra Height Cost = (Extra Height) × (Rate per ft/m) × (System kW)
-    const heightPriceVal = extraHeightChecked ? extraHeightValue * EXTRA_HEIGHT_RATE * selectedProduct.kWp : 0;
-    // For locations outside Varanasi, use editable out-of-Varanasi fee (default 5000).
-    const outOfVnsPriceVal = location !== "Varanasi"
-      ? (typeof outOfVnsFee === 'number' && outOfVnsFee > 0 ? outOfVnsFee : (selectedProduct.outOfVns || 5000))
-      : 0;
-
-    const subtotalVal = basePriceVal + marginPriceVal + wirePriceVal + heightPriceVal + outOfVnsPriceVal;
-    // GST split (configurable): use gstFiveShare and configured rates
-    const share5Local = Math.max(0, Math.min(100, gstFiveShare)) / 100;
-    const share18Local = 1 - share5Local;
-    const gst5Val = +(subtotalVal * share5Local * (gstFiveRatePercent / 100)).toFixed(2);
-    const gst18Val = +(subtotalVal * share18Local * (gstEighteenRatePercent / 100)).toFixed(2);
-    const gstAmountVal = +(gst5Val + gst18Val).toFixed(2);
-    const totalVal = +(subtotalVal + gstAmountVal).toFixed(2);
-    // Sales incentive is taken from the margin (company profit). Compute incentive amount and company retained margin.
-    let salespersonIncentiveAmountVal = 0;
-    if (salespersonIncentiveMode === 'percent') {
-      const incentiveShare = Math.max(0, Math.min(100, salespersonIncentivePercent)) / 100;
-      salespersonIncentiveAmountVal = +(marginPriceVal * incentiveShare).toFixed(2);
-    } else {
-      // fixed amount — cannot exceed the margin
-      salespersonIncentiveAmountVal = Math.max(0, Math.min(marginPriceVal, +(salespersonIncentiveFixed || 0)));
-      salespersonIncentiveAmountVal = +salespersonIncentiveAmountVal.toFixed(2);
+    const defaults = defaultComponents[selectedSystemType as keyof typeof defaultComponents];
+    if (defaults) {
+      const updatedDefaults = defaults.map((c, i) => {
+        if (i === 0) return { ...c, description: `${panelWattage}Wp (${panelType}) Modules`, quantity: `${numberOfPanels.toString().padStart(2, '0')} Nos`, make: effectivePanelBrand, sort_order: i };
+        if (i === 1) return { ...c, description: inverterModel, make: effectiveInverterBrand, sort_order: i };
+        return { ...c, sort_order: i };
+      });
+      setComponents(updatedDefaults);
     }
-    const companyRetainedMarginVal = +(marginPriceVal - salespersonIncentiveAmountVal).toFixed(2);
-    return { basePrice: basePriceVal, marginPrice: marginPriceVal, wirePrice: wirePriceVal, heightPrice: heightPriceVal, outOfVnsPrice: outOfVnsPriceVal, subtotal: subtotalVal, gst5Amount: gst5Val, gst18Amount: gst18Val, gstAmount: gstAmountVal, total: totalVal, salespersonIncentiveAmount: salespersonIncentiveAmountVal, companyRetainedMargin: companyRetainedMarginVal };
-  }, [selectedProduct, extraMargin, extraWireChecked, extraWireLength, extraHeightChecked, extraHeightValue, location, salespersonIncentivePercent, salespersonIncentiveMode, salespersonIncentiveFixed]);
+    const defaultTermsList = defaultTerms[selectedSystemType as keyof typeof defaultTerms];
+    if (defaultTermsList) setTerms(defaultTermsList.slice(0, 8));
+  }, [selectedSystemType, panelWattage, effectivePanelBrand, panelType, numberOfPanels, effectiveInverterBrand, inverterModel]);
 
-  const safeDiscount = Math.max(0, discount || 0);
-  const grandTotal = Math.max(0, +(total - safeDiscount).toFixed(2));
+  // Update inverter model when capacity changes
+  useEffect(() => {
+    const inverterCapacity = capacityKw <= 3 ? 3 : capacityKw <= 5 ? 5 : capacityKw <= 10 ? 10 : Math.ceil(capacityKw);
+    setInverterModel(`${inverterCapacity} KW ${selectedSystemType} String`);
+  }, [capacityKw, selectedSystemType]);
 
-  const handleReset = () => {
-    setSelectedProduct(null);
-    setExtraMargin(0);
-    setExtraWireChecked(false);
-    setExtraWireLength(0);
-    setExtraHeightChecked(false);
-    setExtraHeightValue(0);
-    setDiscount(0);
-    setLocation("Varanasi");
-    setSalespersonName("");
-  };
+  // Calculate extra costs
+  const extraCosts = useMemo(() => {
+    const structureCost = extraStructureEnabled ? (actualSystemSize * 1000 * extraStructureRate) : 0;
+    const panelsCost = extraPanelsEnabled ? (extraPanelCount * extraPanelPrice) : 0;
+    const wireCost = extraWireEnabled ? (extraWireLength * extraWireRate) : 0;
+    return { structureCost, panelsCost, wireCost, total: structureCost + panelsCost + wireCost };
+  }, [extraStructureEnabled, extraStructureRate, actualSystemSize, extraPanelsEnabled, extraPanelCount, extraPanelPrice, extraWireEnabled, extraWireLength, extraWireRate]);
 
-  // react-to-print v3 API: use contentRef
-  const handlePrintSales = useReactToPrint({ contentRef: salesPrintRef, documentTitle: `SalesCopy_ArpitSolar_${new Date().toISOString().slice(0, 10)}` });
-  const handlePrintCustomer = useReactToPrint({ contentRef: customerPrintRef, documentTitle: `CustomerCopy_ArpitSolar_${new Date().toISOString().slice(0, 10)}` });
+  // Calculate GST and totals (including extra costs)
+  const calculations = useMemo(() => {
+    const totalBasePrice = basePrice + extraCosts.total;
+    const gstAmount = +(totalBasePrice * (gstRate / 100)).toFixed(2);
+    const totalAmount = +(totalBasePrice + gstAmount).toFixed(2);
+    const savings = calculateSavings(actualSystemSize, totalAmount, centralSubsidy, stateSubsidy);
+    const effectiveCost = Math.max(0, totalAmount - centralSubsidy - stateSubsidy);
+    return { basePrice: totalBasePrice, originalBasePrice: basePrice, extraCostsTotal: extraCosts.total, gstRate, gstAmount, totalAmount, ...savings, effectiveCost };
+  }, [basePrice, extraCosts.total, gstRate, actualSystemSize, centralSubsidy, stateSubsidy]);
 
-  const handleOpenDialog = (mode: DialogMode) => { setDialogMode(mode); setDialogOpen(true); };
-  const handleCloseDialog = () => setDialogOpen(false);
+  const quoteNumber = useMemo(() => {
+    if (!customerName) return "";
+    const initials = customerName.split(" ").map((n) => n.charAt(0).toUpperCase()).join("");
+    return generateQuoteNumber(initials);
+  }, [customerName]);
 
-  const handleCustomerInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCustomerInfo({ ...customerInfo, [e.target.name]: e.target.value });
-  };
+  const currentDate = useMemo(() => new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" }), []);
 
-  const buildQuotePayload = () => {
-    if (!selectedProduct) return null;
-    const customerSubtotal = basePrice + marginPrice + wirePrice + heightPrice + outOfVnsPrice;
-    const share5 = Math.max(0, Math.min(100, gstFiveShare)) / 100;
-    const share18 = 1 - share5;
-    const customerGst5 = +(customerSubtotal * share5 * (gstFiveRatePercent / 100)).toFixed(2);
-    const customerGst18 = +(customerSubtotal * share18 * (gstEighteenRatePercent / 100)).toFixed(2);
-    const customerGst = +(customerGst5 + customerGst18).toFixed(2);
-    const customerTotal = +(customerSubtotal + customerGst).toFixed(2);
-    return {
-      customerInfo,
-      selectedProduct,
-      salespersonName,
-      location,
-      extraMargin,
-      calculations: {
-        basePrice,
-        marginPrice,
-        wirePrice,
-        heightPrice,
-        outOfVnsPrice,
-        subtotal: customerSubtotal,
-        gstAmount: customerGst,
-        gst5Amount: customerGst5,
-        gst18Amount: customerGst18,
-        gstConfig: { share5Percent: gstFiveShare, gst5RatePercent: gstFiveRatePercent, gst18RatePercent: gstEighteenRatePercent },
-          total: customerTotal,
-          discount: safeDiscount,
-          grandTotal: Math.max(0, +(customerTotal - safeDiscount).toFixed(2)),
-          salespersonIncentiveMode: salespersonIncentiveMode,
-          salespersonIncentivePercent: salespersonIncentivePercent,
-          salespersonIncentiveFixed: salespersonIncentiveFixed,
-          salespersonIncentiveAmount: salespersonIncentiveAmount,
-          companyRetainedMargin: companyRetainedMargin,
-      },
-      components,
-      inverterCapacityKw: selectedProduct.kWp,
-    };
-  };
+  const handlePrint = useReactToPrint({ contentRef: printRef, documentTitle: `Quotation_${customerName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}` });
 
-  const saveQuoteRecord = async (payload: any) => {
-    try {
-      await fetch("/api/quotes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-    } catch {
-      console.error("Failed to save quote record");
-    }
-  };
+  const handleEditComponent = (index: number) => { setEditingComponent({ ...components[index] }); setEditingIndex(index); setEditComponentDialog(true); };
+  const handleSaveComponentEdit = () => { if (editingComponent && editingIndex >= 0) { const updated = [...components]; updated[editingIndex] = editingComponent; setComponents(updated); } setEditComponentDialog(false); setEditingComponent(null); setEditingIndex(-1); };
+  const handleDeleteComponent = (index: number) => setComponents(components.filter((_, i) => i !== index));
+  const handleAddComponent = () => { if (newComponent.name) { setComponents([...components, { ...newComponent, sort_order: components.length }]); setNewComponent({ name: "", description: "", quantity: "1 Nos", make: "Standard", sort_order: 0 }); setAddComponentDialog(false); } };
 
-  const sendWhatsApp = async () => {
-    if (serverReady === false) {
-      setNotification({ open: true, message: `Server not configured for WhatsApp/pdf upload. Missing: ${serverMissingEnv.join(', ') || 'envs'}`, severity: 'error' });
-      return;
-    }
-    if (!customerInfo.phone || !/^\d{10}$/.test(customerInfo.phone)) {
-      setNotification({ open: true, message: "Please enter a valid 10-digit phone number.", severity: "error" });
-      return;
-    }
+  const handleReset = () => { setCustomerName(""); setCustomerPhone(""); setCustomerAddress(""); setCapacityKw(3); setPhase(1); setPanelWattage(620); setPanelBrand("Adani"); setBasePrice(165289.26); };
+
+  const handleSaveQuotation = async () => {
+    if (!customerName) { setNotification({ open: true, message: "Customer name is required", severity: "error" }); return; }
     setLoading(true);
-    handleCloseDialog();
-
-    const payload = { ...buildQuotePayload(), channel: 'whatsapp', taxRate: 0.089, currency: 'INR' };
-
     try {
-      if (!payload) throw new Error("Please select a product before sending.");
-      const response = await fetch("/api/quote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const response = await fetch("/api/quotations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer_name: customerName, customer_phone: customerPhone, customer_address: customerAddress, system_type_name: selectedSystemType, capacity_kw: actualSystemSize, phase, brand: effectivePanelBrand, base_price: basePrice, gst_rate: gstRate, central_subsidy: centralSubsidy, state_subsidy: stateSubsidy, terms, components, salesperson: companyDetails.authorizedSignatory }) });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.message || "Failed to send quote");
-      // Save record to Supabase via our capture route
-      await saveQuoteRecord(payload);
-      setNotification({ open: true, message: "Quotation sent successfully!", severity: "success" });
-    } catch (error: any) {
-      setNotification({ open: true, message: error.message, severity: "error" });
-    } finally {
-      setLoading(false);
-    }
+      if (result.success) setNotification({ open: true, message: "Quotation saved successfully!", severity: "success" });
+      else throw new Error(result.message || "Failed to save");
+    } catch (error: any) { setNotification({ open: true, message: error.message, severity: "error" }); }
+    finally { setLoading(false); }
   };
 
-  const printCustomerCopy = async () => {
-    // Validation optional for print; keep consistent with WhatsApp
-    if (!selectedProduct) {
-      setNotification({ open: true, message: "Please select a product before printing.", severity: "error" });
-      return;
-    }
-    if (!customerInfo.name || !customerInfo.phone || !/^\d{10}$/.test(customerInfo.phone)) {
-      setNotification({ open: true, message: "Please fill customer name and a valid 10-digit phone number.", severity: "error" });
-      return;
-    }
+  // Get quotation data for sharing
+  const getQuotationData = () => ({
+    customerName,
+    systemSize: actualSystemSize,
+    panelBrand: effectivePanelBrand,
+    panelWattage,
+    panelType,
+    inverterModel,
+    totalAmount: calculations.totalAmount,
+    effectiveCost: calculations.effectiveCost,
+    centralSubsidy,
+    stateSubsidy
+  });
+
+  // WhatsApp handler - generates PDF, uploads to Supabase, sends via DoubleTick
+  const handleSendWhatsApp = async () => {
+    if (!customerName) { setNotification({ open: true, message: "Customer name is required", severity: "error" }); return; }
+    if (!customerPhone) { setNotification({ open: true, message: "Customer phone is required for WhatsApp", severity: "error" }); return; }
+
     setLoading(true);
-    handleCloseDialog();
-    const payload = { ...buildQuotePayload(), channel: 'customer_print', taxRate: 0.089, currency: 'INR' };
+    setNotification({ open: true, message: "Generating PDF and sending to WhatsApp...", severity: "info" });
+
     try {
-      // Save the record first (for tracking)
-      await saveQuoteRecord(payload);
-      // Then trigger the print
-      await handlePrintCustomer?.();
-      setNotification({ open: true, message: "Customer copy ready to print.", severity: "success" });
-    } catch (e: any) {
-      setNotification({ open: true, message: e.message || "Failed to print customer copy.", severity: "error" });
-    } finally {
-      setLoading(false);
+      // Prepare quote data for PDF generation
+      const quoteData = {
+        customerInfo: {
+          name: customerName,
+          phone: customerPhone,
+          address: customerAddress || ""
+        },
+        selectedProduct: {
+          systemType: selectedSystemType,
+          capacity: actualSystemSize,
+          phase: phase,
+          panelBrand: effectivePanelBrand,
+          panelWattage: panelWattage,
+          panelType: panelType,
+          inverterBrand: inverterModel
+        },
+        calculations: {
+          basePrice: calculations.originalBasePrice,
+          extraCosts: extraCosts.total,
+          subtotal: calculations.basePrice,
+          gstAmount: calculations.gstAmount,
+          total: calculations.totalAmount,
+          discount: 0,
+          grandTotal: calculations.totalAmount,
+          centralSubsidy,
+          stateSubsidy,
+          effectiveCost: calculations.effectiveCost
+        },
+        taxRate: gstRate / 100,
+        components,
+        terms
+      };
+
+      const response = await fetch("/api/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(quoteData)
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setNotification({ open: true, message: "Quotation PDF sent to WhatsApp successfully!", severity: "success" });
+      } else {
+        throw new Error(result.message || "Failed to send WhatsApp");
+      }
+    } catch (error: any) {
+      console.error("WhatsApp error:", error);
+      setNotification({ open: true, message: error.message, severity: "error" });
     }
+    finally { setLoading(false); }
   };
 
-  const handleDialogPrimary = async () => {
-    if (dialogMode === "whatsapp") return sendWhatsApp();
-    return printCustomerCopy();
+  // Email handler
+  const [customerEmail, setCustomerEmail] = useState("");
+  const handleSendEmail = async () => {
+    const emailToUse = customerEmail || prompt("Enter customer email address:");
+    if (!emailToUse) { setNotification({ open: true, message: "Email address is required", severity: "error" }); return; }
+    if (customerEmail !== emailToUse) setCustomerEmail(emailToUse);
+
+    setLoading(true);
+    try {
+      const response = await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailToUse, quotationData: getQuotationData() })
+      });
+      const result = await response.json();
+      if (result.success) {
+        if (result.useMailto) {
+          window.open(result.mailtoLink, "_blank");
+          setNotification({ open: true, message: "Email client opened with quotation details", severity: "success" });
+        } else {
+          setNotification({ open: true, message: "Email sent successfully!", severity: "success" });
+        }
+      } else throw new Error(result.message || "Failed to send email");
+    } catch (error: any) { setNotification({ open: true, message: error.message, severity: "error" }); }
+    finally { setLoading(false); }
   };
 
-  // Allow page to render without a selected product; guard dependent UI below
-
-  const animationVariants = {
-    hidden: { opacity: 0, y: -20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-    exit: { opacity: 0, y: 20, transition: { duration: 0.3 } },
-  } as const;
-
-  // Return the exact product arrays for the selected supplier (no programmatic filtering)
-  const getSupplierProducts = () => {
-    const supplierMap: { [key: string]: Product[] } = {
-      'tata': productsBySupplier.tata,
-      'waaree-topcon': productsBySupplier.waareeTopcon,
-      'adani-topcon': productsBySupplier.adaniTopcon,
-      'premier-topcon': productsBySupplier.premierTopcon,
-      'waaree-dcr': productsBySupplier.waareeHybridDcrBattery,
-      'waaree-dcr-nobattery': productsBySupplier.waareeHybridDcrNoBattery,
-      'waaree-ndcr': productsBySupplier.waareeHybridNDcrBattery,
-      'waaree-ndcr-nobattery': productsBySupplier.waareeHybridNDcrNoBattery,
-    };
-    return supplierMap[selectedSupplier] || products;
-  };
-
-  const supplierProducts = getSupplierProducts();
+  const formatCurrency = (amount: number) => new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
 
   return (
-    <>
-      <Box sx={{ p: { xs: 2, sm: 4 }, bgcolor: "grey.50", minHeight: "100vh" }}>
-        <Box sx={{ maxWidth: "xl", mx: "auto" }}>
-          <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
-            <Image src={companyDetails.logo} alt="Arpit Solar Logo" width={180} height={60} priority />
+    <Box sx={{ display: "flex", height: "100vh", bgcolor: "#f1f5f9" }}>
+      {/* LEFT EDIT PANEL */}
+      <Box sx={{ width: 380, minWidth: 380, bgcolor: "white", borderRight: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {/* Header */}
+        <Box sx={{ p: 2, borderBottom: "1px solid #e2e8f0", bgcolor: "#1e3a5f", color: "white" }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: 16 }}>
+              <SolarPower sx={{ mr: 1, verticalAlign: "middle", fontSize: 20 }} />
+              Quotation Builder
+            </Typography>
+            <Link href="/admin">
+              <IconButton size="small" sx={{ color: "white" }}><AdminPanelSettings fontSize="small" /></IconButton>
+            </Link>
           </Box>
-          <Typography variant="h4" component="h1" sx={{ mb: 1, textAlign: "center", fontWeight: "bold" }}>
-            <SolarPower sx={{ verticalAlign: "middle" }} /> Solar Pricing Calculator
-          </Typography>
-          <Typography variant="body2" sx={{ textAlign: "center", color: "text.secondary", mb: 3 }}>
-            Select your product type and configure your quote
-          </Typography>
+        </Box>
 
-          {/* Product Type Selector */}
-          <Box sx={{ mb: 4 }}>
-            <Card sx={{ borderRadius: 2, boxShadow: 2 }}>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
-                  🔧 Select Product Type
-                </Typography>
-                <Grid container spacing={2}>
-                  {SupplierTabs.map((supplier) => (
-                    <Grid item xs={12} sm={6} md={3} key={supplier.id}>
-                      <Paper
-                        onClick={() => {
-                          setSelectedSupplier(supplier.id);
-                          setSelectedProduct(null); // Reset selected product
-                        }}
-                        sx={{
-                          p: 2,
-                          cursor: "pointer",
-                          border: selectedSupplier === supplier.id ? `3px solid ${supplier.color}` : "2px solid #e0e0e0",
-                          backgroundColor: selectedSupplier === supplier.id ? `${supplier.color}15` : "#fff",
-                          borderRadius: 2,
-                          transition: "all 0.3s ease",
-                          "&:hover": {
-                            boxShadow: 3,
-                            transform: "translateY(-2px)",
-                          },
-                        }}
-                      >
-                        <Typography
-                          variant="subtitle2"
-                          sx={{
-                            fontWeight: "bold",
-                            color: supplier.color,
-                            mb: 0.5,
-                          }}
-                        >
-                          {supplier.label}
-                        </Typography>
-                        <Typography variant="caption" color="textSecondary">
-                          {supplier.description}
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  ))}
-                </Grid>
-                <Box sx={{ mt: 3, pt: 2, borderTop: "1px solid #e0e0e0" }}>
-                  <Button
-                    href="/catalog"
-                    variant="outlined"
-                    fullWidth
-                    sx={{
-                      py: 1.5,
-                      fontWeight: "bold",
-                      textTransform: "none",
-                      fontSize: "1rem",
-                    }}
-                  >
-                    📋 View Complete Product Catalog
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          </Box>
+        {/* Scrollable Form */}
+        <Box sx={{ flex: 1, overflow: "auto", p: 0 }}>
+          {/* System Type */}
+          <Accordion defaultExpanded disableGutters sx={{ boxShadow: "none", "&:before": { display: "none" } }}>
+            <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: "#f8fafc", minHeight: 44, "& .MuiAccordionSummary-content": { my: 0.5 } }}>
+              <SolarPower sx={{ mr: 1, color: "#1e3a5f", fontSize: 18 }} />
+              <Typography variant="subtitle2" fontWeight="bold" color="#1e3a5f">System Type</Typography>
+            </AccordionSummary>
+            <AccordionDetails sx={{ p: 1.5 }}>
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                {systemTypes.map((type) => (
+                  <Chip
+                    key={type.id}
+                    label={type.name}
+                    icon={type.icon}
+                    onClick={() => setSelectedSystemType(type.id)}
+                    variant={selectedSystemType === type.id ? "filled" : "outlined"}
+                    sx={{ bgcolor: selectedSystemType === type.id ? type.color : "transparent", color: selectedSystemType === type.id ? "white" : "inherit", "& .MuiChip-icon": { color: selectedSystemType === type.id ? "white" : type.color } }}
+                  />
+                ))}
+              </Box>
+            </AccordionDetails>
+          </Accordion>
 
-          <Grid container spacing={4}>
-            {/* Price Breakdown - moved above all */}
-            <Grid item xs={12} sm={12} md={6}>
-              <motion.div animate={{ scale: [1, 1.02, 1] }} transition={{ duration: 0.5 }}>
-                <Paper elevation={4} sx={{ borderRadius: 3, p: 3, background: 'linear-gradient(180deg, #ffffff 0%, #fafafa 100%)' }}>
-                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <PriceCheck /> Price Breakdown
-                  </Typography>
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                    {[
-                      { label: "Base Price", value: basePrice },
-                      { label: "Extra Margin", value: marginPrice, bold: true },
-                      { label: "Sales Incentive (from Margin)", value: salespersonIncentiveAmount, indent: true },
-                      { label: "Company Retained Margin (after incentive)", value: companyRetainedMargin, indent: true },
-                      { label: "Extra Wire Cost", value: wirePrice },
-                      { label: "Extra Height Cost", value: heightPrice },
-                      { label: "Logistics & Delivery Fee", value: outOfVnsPrice },
-                    ]
-                      .filter((item) => item.value > 0 || item.label === "Base Price")
-                      .map((item) => (
-                        <Box key={item.label} sx={{ display: "flex", justifyContent: "space-between", pl: item.indent ? 2 : 0, color: item.indent ? "text.secondary" : "text.primary", fontSize: item.indent ? "0.9rem" : "1rem" }}>
-                          <Typography variant="body1">{item.label}:</Typography>
-                          <Typography variant="body1" fontWeight={item.bold ? 600 : 400}>{formatCurrency(item.value)}</Typography>
-                        </Box>
-                      ))}
-                    <Divider sx={{ my: 1 }} />
-                    <Box sx={{ display: "flex", justifyContent: "space-between" }}><Typography>Subtotal (Before GST):</Typography><Typography>{formatCurrency(subtotal)}</Typography></Box>
-                      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                          <Typography>{`Portion taxed @ ${gstFiveRatePercent}% (${gstFiveShare}% of subtotal):`}</Typography>
-                          <Typography>{formatCurrency(gst5Amount)}</Typography>
-                        </Box>
-                        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                          <Typography>{`Portion taxed @ ${gstEighteenRatePercent}% (${100 - gstFiveShare}% of subtotal):`}</Typography>
-                          <Typography>{formatCurrency(gst18Amount)}</Typography>
-                        </Box>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
-                          <Typography>Total GST (combined):</Typography>
-                          <Typography>{formatCurrency(gstAmount)}</Typography>
-                        </Box>
-                      </Box>
-                    <Divider sx={{ my: 1 }} />
-                    <Typography variant="caption" color="text.secondary">GST calculation: {gstFiveShare}% of subtotal taxed at {gstFiveRatePercent}%, remainder taxed at {gstEighteenRatePercent}%. Effective GST = {subtotal > 0 ? ((gstAmount / subtotal) * 100).toFixed(2) : '0.00'}% of subtotal.</Typography>
-                    <Box sx={{ display: "flex", justifyContent: "space-between" }}><Typography variant="h6" fontWeight="bold">Total (After GST):</Typography><Typography variant="h6" fontWeight="bold">{formatCurrency(total)}</Typography></Box>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
-                      <Typography>Suggested Inverter Capacity:</Typography>
-                      <Typography>{selectedProduct ? `${selectedProduct.kWp} kWp` : '-'}</Typography>
-                    </Box>
-                    {safeDiscount > 0 && (
-                      <Box sx={{ display: "flex", justifyContent: "space-between", color: "success.main" }}>
-                        <Typography variant="h6" fontWeight="bold">Discount:</Typography>
-                        <Typography variant="h6" fontWeight="bold">-{formatCurrency(safeDiscount)}</Typography>
-                      </Box>
-                    )}
-                    <Divider sx={{ my: 1 }} />
-                    <Box sx={{ display: "flex", justifyContent: "space-between" }}><Typography variant="h6" fontWeight="bold">Grand Total:</Typography><Typography variant="h6" fontWeight="bold">{formatCurrency(grandTotal)}</Typography></Box>
+          {/* Customer Details */}
+          <Accordion defaultExpanded disableGutters sx={{ boxShadow: "none", "&:before": { display: "none" } }}>
+            <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: "#f8fafc", minHeight: 44, "& .MuiAccordionSummary-content": { my: 0.5 } }}>
+              <Person sx={{ mr: 1, color: "#1e3a5f", fontSize: 18 }} />
+              <Typography variant="subtitle2" fontWeight="bold" color="#1e3a5f">Customer Details</Typography>
+            </AccordionSummary>
+            <AccordionDetails sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <TextField fullWidth label="Customer Name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required size="small" />
+              <TextField fullWidth label="Mobile Number" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} size="small" />
+              <TextField fullWidth label="Address" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} size="small" multiline rows={2} />
+            </AccordionDetails>
+          </Accordion>
+
+          {/* System Configuration */}
+          <Accordion defaultExpanded disableGutters sx={{ boxShadow: "none", "&:before": { display: "none" } }}>
+            <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: "#f8fafc", minHeight: 44, "& .MuiAccordionSummary-content": { my: 0.5 } }}>
+              <Settings sx={{ mr: 1, color: "#1e3a5f", fontSize: 18 }} />
+              <Typography variant="subtitle2" fontWeight="bold" color="#1e3a5f">System Configuration</Typography>
+            </AccordionSummary>
+            <AccordionDetails sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <TextField label="Capacity (KW)" type="number" value={capacityKw} onChange={(e) => setCapacityKw(parseFloat(e.target.value) || 0)} inputProps={{ step: 0.1, min: 1 }} size="small" sx={{ flex: 1 }} />
+                <TextField label="Wattage (Wp)" type="number" value={panelWattage} onChange={(e) => setPanelWattage(parseInt(e.target.value) || 540)} inputProps={{ step: 5, min: 100 }} size="small" sx={{ flex: 1 }} />
+              </Box>
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <TextField label="Panels" value={numberOfPanels} InputProps={{ readOnly: true }} size="small" sx={{ flex: 1, "& input": { fontWeight: "bold", color: "#1e3a5f" } }} />
+                <TextField label="Actual (KW)" value={actualSystemSize} InputProps={{ readOnly: true }} size="small" sx={{ flex: 1, "& input": { fontWeight: "bold", color: "#1e3a5f" } }} />
+              </Box>
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <FormControl size="small" sx={{ flex: 1 }}>
+                  <InputLabel>Brand</InputLabel>
+                  <Select value={panelBrand} label="Brand" onChange={(e) => setPanelBrand(e.target.value)}>
+                    {panelBrands.map((b) => <MenuItem key={b} value={b}>{b}</MenuItem>)}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ flex: 1 }}>
+                  <InputLabel>Type</InputLabel>
+                  <Select value={panelType} label="Type" onChange={(e) => setPanelType(e.target.value)}>
+                    {panelTypes.map((t) => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Box>
+              {panelBrand === "Other" && <TextField fullWidth label="Custom Brand" value={customPanelBrand} onChange={(e) => setCustomPanelBrand(e.target.value)} size="small" />}
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <FormControl size="small" sx={{ flex: 1 }}>
+                  <InputLabel>Inverter</InputLabel>
+                  <Select value={inverterBrand} label="Inverter" onChange={(e) => setInverterBrand(e.target.value)}>
+                    {inverterBrands.map((b) => <MenuItem key={b} value={b}>{b}</MenuItem>)}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ flex: 1 }}>
+                  <InputLabel>Phase</InputLabel>
+                  <Select value={phase} label="Phase" onChange={(e) => setPhase(Number(e.target.value))}>
+                    <MenuItem value={1}>1Φ</MenuItem>
+                    <MenuItem value={3}>3Φ</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+              {inverterBrand === "Other" && <TextField fullWidth label="Custom Inverter Brand" value={customInverterBrand} onChange={(e) => setCustomInverterBrand(e.target.value)} size="small" />}
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Pricing */}
+          <Accordion defaultExpanded disableGutters sx={{ boxShadow: "none", "&:before": { display: "none" } }}>
+            <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: "#f8fafc", minHeight: 44, "& .MuiAccordionSummary-content": { my: 0.5 } }}>
+              <AttachMoney sx={{ mr: 1, color: "#1e3a5f", fontSize: 18 }} />
+              <Typography variant="subtitle2" fontWeight="bold" color="#1e3a5f">Pricing</Typography>
+            </AccordionSummary>
+            <AccordionDetails sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <TextField fullWidth label="Base Price (Excl. GST)" type="number" value={basePrice} onChange={(e) => setBasePrice(parseFloat(e.target.value) || 0)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" />
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <TextField label="GST Rate" type="number" value={gstRate} onChange={(e) => setGstRate(parseFloat(e.target.value) || 0)} InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }} size="small" sx={{ flex: 1 }} />
+                <TextField label="GST Amount" value={`₹ ${formatCurrency(calculations.gstAmount)}`} InputProps={{ readOnly: true }} size="small" sx={{ flex: 1 }} />
+              </Box>
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <TextField label="Central Subsidy" type="number" value={centralSubsidy} onChange={(e) => setCentralSubsidy(parseFloat(e.target.value) || 0)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" sx={{ flex: 1 }} />
+                <TextField label="State Subsidy" type="number" value={stateSubsidy} onChange={(e) => setStateSubsidy(parseFloat(e.target.value) || 0)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" sx={{ flex: 1 }} />
+              </Box>
+              <Box sx={{ p: 1.5, bgcolor: "#dbeafe", borderRadius: 1, textAlign: "center" }}>
+                <Typography variant="caption" sx={{ color: "#1e40af", textTransform: "uppercase", fontWeight: 700 }}>Effective Cost</Typography>
+                <Typography variant="h5" fontWeight="900" color="#16a34a">₹ {formatCurrency(calculations.effectiveCost)}</Typography>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Extra Costs (Optional) */}
+          <Accordion disableGutters sx={{ boxShadow: "none", "&:before": { display: "none" } }}>
+            <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: "#fef3c7", minHeight: 44, "& .MuiAccordionSummary-content": { my: 0.5 } }}>
+              <AddCircle sx={{ mr: 1, color: "#d97706", fontSize: 18 }} />
+              <Typography variant="subtitle2" fontWeight="bold" color="#92400e">
+                Extra Costs {extraCosts.total > 0 && <Chip size="small" label={`₹${formatCurrency(extraCosts.total)}`} sx={{ ml: 1, height: 18, bgcolor: "#fbbf24", color: "#78350f", fontSize: "10px" }} />}
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
+              {/* Extra Structure Cost */}
+              <Box sx={{ p: 1.5, bgcolor: extraStructureEnabled ? "#fef3c7" : "#f8fafc", borderRadius: 1, border: "1px solid #e2e8f0" }}>
+                <FormControlLabel
+                  control={<Checkbox size="small" checked={extraStructureEnabled} onChange={(e) => setExtraStructureEnabled(e.target.checked)} />}
+                  label={<Typography variant="body2" fontWeight="bold">Extra Structure Cost</Typography>}
+                />
+                {extraStructureEnabled && (
+                  <Box sx={{ display: "flex", gap: 1, mt: 1, alignItems: "center" }}>
+                    <TextField label="Rate/Watt" type="number" value={extraStructureRate} onChange={(e) => setExtraStructureRate(parseFloat(e.target.value) || 0)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" sx={{ width: 100 }} />
+                    <Typography variant="caption" color="text.secondary">× {actualSystemSize * 1000}W =</Typography>
+                    <Typography variant="body2" fontWeight="bold" color="#d97706">₹{formatCurrency(extraCosts.structureCost)}</Typography>
                   </Box>
-                </Paper>
-              </motion.div>
-            </Grid>
-            {/* Left column - Configuration */}
-            <Grid item xs={12} sm={12} md={6}>
-              <Card sx={{ boxShadow: 3, borderRadius: 3 }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Typography variant="h6" sx={{ mb: 3 }}>
-                    Configuration
-                  </Typography>
-                  <Grid container spacing={3}>
-                    <Grid item xs={12}>
-                      <FormControl fullWidth sx={{ minWidth: 320 }}>
-                        <InputLabel id="product-select-label">Select Product</InputLabel>
-                        <Select
-                          labelId="product-select-label"
-                          label="Select Product"
-                          size="medium"
-                          sx={{ height: 56 }}
-                          value={(() => {
-                            if (!selectedProduct) return "";
-                            const idx = supplierProducts.findIndex(
-                              (p) => p.kWp === selectedProduct.kWp && p.phase === selectedProduct.phase && p.price === selectedProduct.price && p.qty === selectedProduct.qty && p.supplier === selectedProduct.supplier
-                            );
-                            return idx === -1 ? "" : String(idx);
-                          })()}
-                          onChange={(e: SelectChangeEvent) => {
-                            const idx = parseInt(e.target.value as string, 10);
-                            if (!isNaN(idx) && supplierProducts[idx]) setSelectedProduct(supplierProducts[idx]);
-                            else setSelectedProduct(null);
-                          }}
-                        >
-                          <MenuItem value=""><em>Select Product</em></MenuItem>
-                          {supplierProducts.map((p, idx) => (
-                            <MenuItem key={`${p.kWp}-${p.phase}-${idx}`} value={String(idx)}>{
-                              `${p.kWp} kWp • Phase ${p.phase} • ${formatCurrency(p.price)}`
-                            }</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
+                )}
+              </Box>
 
-                    <Grid item xs={12}>
-                      <TextField
-                        label="Salesperson Name"
-                        fullWidth
-                        value={salespersonName}
-                        onChange={(e) => setSalespersonName(e.target.value)}
-                      />
-                    </Grid>
+              {/* Extra Panels Cost */}
+              <Box sx={{ p: 1.5, bgcolor: extraPanelsEnabled ? "#fef3c7" : "#f8fafc", borderRadius: 1, border: "1px solid #e2e8f0" }}>
+                <FormControlLabel
+                  control={<Checkbox size="small" checked={extraPanelsEnabled} onChange={(e) => setExtraPanelsEnabled(e.target.checked)} />}
+                  label={<Typography variant="body2" fontWeight="bold">Extra Panels</Typography>}
+                />
+                {extraPanelsEnabled && (
+                  <Box sx={{ display: "flex", gap: 1, mt: 1, alignItems: "center", flexWrap: "wrap" }}>
+                    <TextField label="Qty" type="number" value={extraPanelCount} onChange={(e) => setExtraPanelCount(parseInt(e.target.value) || 1)} inputProps={{ min: 1 }} size="small" sx={{ width: 70 }} />
+                    <Typography variant="caption">×</Typography>
+                    <TextField label="Price/Panel" type="number" value={extraPanelPrice} onChange={(e) => setExtraPanelPrice(parseFloat(e.target.value) || 0)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" sx={{ width: 110 }} />
+                    <Typography variant="caption">=</Typography>
+                    <Typography variant="body2" fontWeight="bold" color="#d97706">₹{formatCurrency(extraCosts.panelsCost)}</Typography>
+                  </Box>
+                )}
+              </Box>
 
-                    <Grid item xs={12}>
-                      <TextField
-                        label="Extra Margin"
-                        type="number"
-                        fullWidth
-                        value={extraMargin === 0 ? "" : extraMargin}
-                        onChange={(e) => setExtraMargin(Math.max(0, parseFloat(e.target.value) || 0))}
-                        InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
-                      />
-                    </Grid>
-                    {/* Incentive mode is internal — managed in admin portal */}
-                    <Grid item xs={12}>
-                      <TextField
-                        label="Discount"
-                        type="number"
-                        fullWidth
-                        value={discount === 0 ? "" : discount}
-                        onChange={(e) => setDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
-                        InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
-                      />
-                    </Grid>
+              {/* Extra Wire Cost */}
+              <Box sx={{ p: 1.5, bgcolor: extraWireEnabled ? "#fef3c7" : "#f8fafc", borderRadius: 1, border: "1px solid #e2e8f0" }}>
+                <FormControlLabel
+                  control={<Checkbox size="small" checked={extraWireEnabled} onChange={(e) => setExtraWireEnabled(e.target.checked)} />}
+                  label={<Typography variant="body2" fontWeight="bold">Extra Wire</Typography>}
+                />
+                {extraWireEnabled && (
+                  <Box sx={{ display: "flex", gap: 1, mt: 1, alignItems: "center", flexWrap: "wrap" }}>
+                    <TextField label="Length (m)" type="number" value={extraWireLength} onChange={(e) => setExtraWireLength(parseFloat(e.target.value) || 0)} inputProps={{ min: 1 }} size="small" sx={{ width: 90 }} />
+                    <Typography variant="caption">×</Typography>
+                    <TextField label="Rate/m" type="number" value={extraWireRate} onChange={(e) => setExtraWireRate(parseFloat(e.target.value) || 0)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" sx={{ width: 100 }} />
+                    <Typography variant="caption">=</Typography>
+                    <Typography variant="body2" fontWeight="bold" color="#d97706">₹{formatCurrency(extraCosts.wireCost)}</Typography>
+                  </Box>
+                )}
+              </Box>
 
-                    {/* GST configuration is internal — moved to admin portal */}
+              {extraCosts.total > 0 && (
+                <Box sx={{ p: 1, bgcolor: "#fbbf24", borderRadius: 1, textAlign: "center" }}>
+                  <Typography variant="caption" fontWeight="bold" color="#78350f">Total Extra: ₹{formatCurrency(extraCosts.total)}</Typography>
+                </Box>
+              )}
+            </AccordionDetails>
+          </Accordion>
 
-                    <Grid item xs={12}>
-                      <FormControl fullWidth>
-                        <InputLabel id="location-select-label">Location</InputLabel>
-                        <Select
-                          labelId="location-select-label"
-                          label="Location"
-                          value={location}
-                          onChange={(e) => setLocation(e.target.value)}
-                        >
-                          <MenuItem value="Varanasi">Varanasi</MenuItem>
-                          <MenuItem value="Other">Other</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    {location === 'Other' && (
-                      <Grid item xs={12}>
-                        <TextField
-                          label="Out-of-Varanasi Fee"
-                          type="number"
-                          fullWidth
-                          value={outOfVnsFee === 0 ? "" : outOfVnsFee}
-                          onChange={(e) => setOutOfVnsFee(Math.max(0, parseFloat(e.target.value) || 0))}
-                          InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
-                          helperText="Default ₹5000; editable for other locations"
-                        />
-                      </Grid>
-                    )}
+          {/* Components */}
+          <Accordion disableGutters sx={{ boxShadow: "none", "&:before": { display: "none" } }}>
+            <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: "#f8fafc", minHeight: 44, "& .MuiAccordionSummary-content": { my: 0.5 } }}>
+              <ListAlt sx={{ mr: 1, color: "#1e3a5f", fontSize: 18 }} />
+              <Typography variant="subtitle2" fontWeight="bold" color="#1e3a5f">Components ({components.length})</Typography>
+            </AccordionSummary>
+            <AccordionDetails sx={{ p: 1 }}>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                {components.map((comp, index) => (
+                  <Box key={index} sx={{ display: "flex", alignItems: "center", gap: 1, p: 0.75, bgcolor: index % 2 === 0 ? "#f8fafc" : "white", borderRadius: 1, fontSize: 12 }}>
+                    <Box sx={{ flex: 1, overflow: "hidden" }}>
+                      <Typography variant="caption" fontWeight="bold" sx={{ display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{comp.name}</Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{comp.quantity}</Typography>
+                    </Box>
+                    <IconButton size="small" onClick={() => handleEditComponent(index)}><Edit sx={{ fontSize: 16 }} /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => handleDeleteComponent(index)}><Delete sx={{ fontSize: 16 }} /></IconButton>
+                  </Box>
+                ))}
+              </Box>
+              <Button fullWidth variant="outlined" size="small" startIcon={<Add />} onClick={() => setAddComponentDialog(true)} sx={{ mt: 1 }}>Add Component</Button>
+            </AccordionDetails>
+          </Accordion>
+        </Box>
 
-                    <Grid item xs={12}>
-                      <FormControlLabel
-                        control={<Checkbox checked={extraWireChecked} onChange={() => setExtraWireChecked(!extraWireChecked)} />}
-                        label={`Add Extra Wire (@ ${formatCurrency(selectedProduct ? selectedProduct.wire : 0)}/m)`}
-                      />
-                      <AnimatePresence>
-                        {extraWireChecked && (
-                          <motion.div variants={animationVariants} initial="hidden" animate="visible" exit="exit">
-                            <TextField
-                              label="Extra Wire Length (m)"
-                              type="number"
-                              size="small"
-                              sx={{ mt: 1, width: { xs: "100%", sm: "50%" } }}
-                              value={extraWireLength === 0 ? "" : extraWireLength}
-                              onChange={(e) => setExtraWireLength(Math.max(0, parseFloat(e.target.value) || 0))}
-                            />
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </Grid>
-
-                    <Grid xs={12}>
-                      <FormControlLabel
-                        control={<Checkbox checked={extraHeightChecked} onChange={() => setExtraHeightChecked(!extraHeightChecked)} />}
-                        label={`Include Extra Height (@ ${formatCurrency(EXTRA_HEIGHT_RATE)} per ft/m × kW)`}
-                      />
-                      <AnimatePresence>
-                        {extraHeightChecked && (
-                          <motion.div variants={animationVariants} initial="hidden" animate="visible" exit="exit">
-                            <TextField
-                              label="Extra Height (ft/m)"
-                              type="number"
-                              size="small"
-                              sx={{ mt: 1, width: { xs: "100%", sm: "50%" } }}
-                              value={extraHeightValue === 0 ? "" : extraHeightValue}
-                              onChange={(e) => setExtraHeightValue(Math.max(0, parseFloat(e.target.value) || 0))}
-                            />
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </Grid>
-
-                    <Grid xs={12}>
-                      <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                        <Button variant="outlined" color="error" onClick={handleReset} startIcon={<RestartAlt />}>Reset All</Button>
-                        <Button variant="contained" onClick={async () => { await saveQuoteRecord({ ...buildQuotePayload(), channel: 'sales_print', taxRate: 0.089, currency: 'INR' }); handlePrintSales?.(); }} startIcon={<Print />}>Print Sales Copy</Button>
-                        <Button variant="contained" onClick={() => handleOpenDialog("customerPrint")} startIcon={<PictureAsPdf />}>Print Customer Copy</Button>
-                        <Button variant="contained" color="success" onClick={() => handleOpenDialog("whatsapp")} startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <WhatsApp />} disabled={loading || serverReady === false}>{loading ? "Sending..." : "Send on WhatsApp"}</Button>
-                      </Box>
-                      {serverReady === false && (
-                        <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
-                          Server not configured for sending/saving quotes. Missing: {serverMissingEnv.join(', ') || 'required envs'}
-                        </Typography>
-                      )}
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* (moved) */}
-
-            {/* Components Preview */}
-            <Grid item xs={12}>
-              <Paper elevation={1} sx={{ borderRadius: 3, p: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>Included Components</Typography>
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableBody>
-                      {components.map((c, idx) => (
-                        <TableRow key={`comp-main-${idx}-${c.name}`}>
-                          <TableCell>{c.name}</TableCell>
-                          <TableCell>{[c.brand, c.spec].filter(Boolean).join(' ')}</TableCell>
-                          <TableCell align="right">{c.quantity}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Paper>
-            </Grid>
-          </Grid>
+        {/* Action Buttons */}
+        <Box sx={{ p: 1.5, borderTop: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 1 }}>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Tooltip title="Print Quotation">
+              <Button variant="contained" size="small" startIcon={<Print />} onClick={() => handlePrint()} sx={{ flex: 1, bgcolor: "#eab308", "&:hover": { bgcolor: "#ca8a04" } }}>Print</Button>
+            </Tooltip>
+            <Tooltip title="Save to Database">
+              <Button variant="contained" size="small" startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <Save />} onClick={handleSaveQuotation} disabled={loading} sx={{ flex: 1, bgcolor: "#1e3a5f" }}>Save</Button>
+            </Tooltip>
+          </Box>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Tooltip title="Send via WhatsApp">
+              <Button variant="contained" size="small" startIcon={<WhatsApp />} onClick={handleSendWhatsApp} disabled={loading} sx={{ flex: 1, bgcolor: "#25D366", "&:hover": { bgcolor: "#128C7E" } }}>WhatsApp</Button>
+            </Tooltip>
+            <Tooltip title="Send via Email">
+              <Button variant="contained" size="small" startIcon={<Email />} onClick={handleSendEmail} disabled={loading} sx={{ flex: 1, bgcolor: "#EA4335", "&:hover": { bgcolor: "#C5221F" } }}>Email</Button>
+            </Tooltip>
+            <Tooltip title="Reset Form">
+              <IconButton size="small" onClick={handleReset} color="error"><RestartAlt /></IconButton>
+            </Tooltip>
+          </Box>
         </Box>
       </Box>
 
-      <Dialog open={dialogOpen} onClose={handleCloseDialog}>
-        <DialogTitle>{dialogMode === "whatsapp" ? "Send Quotation to Customer" : "Customer Copy Print"}</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>{dialogMode === "whatsapp" ? "Enter customer details. The quote will be sent to WhatsApp." : "Enter customer details to print a customer-friendly copy."}</DialogContentText>
-          <TextField autoFocus margin="dense" name="name" label="Customer Name" type="text" fullWidth variant="standard" value={customerInfo.name} onChange={handleCustomerInfoChange} />
-          <TextField margin="dense" name="phone" label="Phone Number (10 digits)" type="tel" fullWidth variant="standard" value={customerInfo.phone} onChange={handleCustomerInfoChange} />
-          <TextField margin="dense" name="address" label="Address" type="text" fullWidth variant="standard" value={customerInfo.address} onChange={handleCustomerInfoChange} />
+      {/* CENTER PREVIEW */}
+      <Box sx={{ flex: 1, overflow: "auto", p: 3, display: "flex", justifyContent: "center", bgcolor: "#e2e8f0" }}>
+        <Box ref={printRef} sx={{ width: "210mm", minHeight: "297mm", p: "15mm", bgcolor: "white", boxShadow: "0 4px 20px rgba(0,0,0,0.15)", fontFamily: "'Segoe UI', sans-serif", fontSize: "11px", color: "#1e293b", boxSizing: "border-box" }}>
+          {/* Header */}
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "4px solid #eab308", pb: 3, mb: 3 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Box component="img" src="/logo.png" alt="Logo" sx={{ maxHeight: 80 }} onError={(e: any) => { e.target.style.display = 'none'; }} />
+              <Box>
+                <Typography sx={{ fontSize: "26px", fontWeight: 900, color: "#1e3a5f", letterSpacing: "-0.5px", lineHeight: 1 }}>ARPIT SOLAR SHOP</Typography>
+                <Typography sx={{ fontSize: "10px", fontWeight: 600, color: "#64748b", mt: 0.5, letterSpacing: 1, textTransform: "uppercase" }}>{companyDetails.tagline}</Typography>
+                <Box sx={{ fontSize: "10px", color: "#64748b", mt: 1 }}>
+                  <Typography sx={{ color: "#1d4ed8", fontWeight: 700, mb: 0.25, fontSize: "10px" }}>GSTIN: {companyDetails.gstin}</Typography>
+                  <Typography sx={{ fontSize: "10px" }}><strong>HO:</strong> {companyDetails.headOffice}</Typography>
+                  <Typography sx={{ fontSize: "10px" }}><strong>Contact:</strong> {companyDetails.phone} | <strong>Email:</strong> {companyDetails.email}</Typography>
+                </Box>
+              </Box>
+            </Box>
+            <Box sx={{ textAlign: "right" }}>
+              <Box sx={{ bgcolor: "#eab308", color: "white", px: 2, py: 0.75, fontSize: "16px", fontWeight: 900, borderRadius: 1, mb: 1, textTransform: "uppercase", letterSpacing: 2 }}>Quotation</Box>
+              <Typography sx={{ fontSize: "12px", color: "#64748b", fontWeight: 700 }}>Date: {currentDate}</Typography>
+              {quoteNumber && <Typography sx={{ fontSize: "10px", color: "#94a3b8" }}>Quote No: {quoteNumber}</Typography>}
+            </Box>
+          </Box>
+
+          {/* Customer & System Overview */}
+          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3, mb: 3 }}>
+            <Box sx={{ bgcolor: "#f8fafc", p: 2, borderRadius: 2, border: "1px solid #e2e8f0", overflow: "hidden" }}>
+              <Typography sx={{ fontWeight: 700, color: "#1e3a5f", mb: 1, textTransform: "uppercase", fontSize: "10px", letterSpacing: 1, borderBottom: "1px solid #e2e8f0", pb: 0.5 }}>Customer Details</Typography>
+              <Typography sx={{ fontWeight: 900, color: "#1e40af", fontSize: "16px", wordBreak: "break-word" }}>{customerName || "________________"}</Typography>
+              {customerAddress && <Typography sx={{ color: "#475569", fontWeight: 500, fontSize: "11px", fontStyle: "italic", wordBreak: "break-word" }}>{customerAddress}</Typography>}
+              {customerPhone && <Typography sx={{ color: "#475569", fontWeight: 500, fontSize: "11px" }}>Mo No: {customerPhone}</Typography>}
+            </Box>
+            <Box sx={{ bgcolor: "#f8fafc", p: 2, borderRadius: 2, border: "1px solid #e2e8f0", overflow: "hidden" }}>
+              <Typography sx={{ fontWeight: 700, color: "#1e3a5f", mb: 1, textTransform: "uppercase", fontSize: "10px", letterSpacing: 1, borderBottom: "1px solid #e2e8f0", pb: 0.5 }}>System Overview</Typography>
+              <Box sx={{ fontSize: "11px" }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25 }}><span>System Size:</span> <strong>{actualSystemSize} KW ({phase === 1 ? "Single Phase" : "Three Phase"})</strong></Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25, wordBreak: "break-word" }}><span>Modules:</span> <strong style={{ textAlign: "right", maxWidth: "60%" }}>{effectivePanelBrand} {panelWattage}Wp ({panelType})</strong></Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25, wordBreak: "break-word" }}><span>Inverter:</span> <strong style={{ textAlign: "right", maxWidth: "60%" }}>{effectiveInverterBrand} {inverterModel}</strong></Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between" }}><span>Type:</span> <strong>{selectedSystemType}</strong></Box>
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Components Table */}
+          <Box sx={{ overflow: "hidden", borderRadius: 2, border: "1px solid #e2e8f0", mb: 3 }}>
+            <table style={{ width: "100%", fontSize: "11px", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ backgroundColor: "#f1f5f9", color: "#1e3a5f", borderBottom: "1px solid #e2e8f0" }}>
+                  <th style={{ padding: "10px 14px", textAlign: "left", width: "40px" }}>S.N</th>
+                  <th style={{ padding: "10px 14px", textAlign: "left" }}>Components Description</th>
+                  <th style={{ padding: "10px 14px", textAlign: "center" }}>Specifications / Make</th>
+                  <th style={{ padding: "10px 14px", textAlign: "right", width: "80px" }}>Qty</th>
+                </tr>
+              </thead>
+              <tbody>
+                {components.map((comp, index) => (
+                  <tr key={index} style={{ backgroundColor: index % 2 === 1 ? "#f8fafc80" : "white", borderBottom: "1px solid #e2e8f0" }}>
+                    <td style={{ padding: "8px 14px", textAlign: "center", fontWeight: 700 }}>{index + 1}</td>
+                    <td style={{ padding: "8px 14px", fontWeight: index < 2 ? 700 : 500, color: index < 2 ? "#1e293b" : "#475569" }}>{comp.name}</td>
+                    <td style={{ padding: "8px 14px", textAlign: "center", fontStyle: index === 0 ? "italic" : "normal", color: index < 2 ? "#1e40af" : "#64748b" }}>{comp.description} {comp.make !== "Standard" ? `(${comp.make})` : ""}</td>
+                    <td style={{ padding: "8px 14px", textAlign: "right", fontWeight: 700, color: index < 2 ? "#1e40af" : "inherit" }}>{comp.quantity}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Box>
+
+          {/* Pricing & Subsidy */}
+          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3, mb: 3 }}>
+            <Box>
+              <Box sx={{ bgcolor: "#f0fdf4", border: "1px solid #bbf7d0", p: 2, borderRadius: 2, mb: 2 }}>
+                <Typography sx={{ fontWeight: 900, color: "#166534", fontSize: "10px", textTransform: "uppercase", mb: 1, letterSpacing: 1 }}>PM Surya Ghar Subsidy</Typography>
+                <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "12px", py: 0.5, borderBottom: "1px solid #bbf7d0" }}><span>Central Subsidy:</span><strong>₹ {formatCurrency(centralSubsidy)}/-</strong></Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "12px", py: 0.5, borderBottom: "1px solid #bbf7d0" }}><span>State Subsidy:</span><strong>₹ {formatCurrency(stateSubsidy)}/-</strong></Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "14px", pt: 1.5, fontWeight: 900, color: "#166534", textTransform: "uppercase" }}><span>Total Benefit:</span><span style={{ fontSize: "18px" }}>₹ {formatCurrency(calculations.totalSubsidy)}/-</span></Box>
+              </Box>
+              <Box sx={{ bgcolor: "#eff6ff", border: "1px solid #bfdbfe", p: 2, borderRadius: 2, fontSize: "10px" }}>
+                <Typography sx={{ fontWeight: 900, color: "#1e3a5f", textTransform: "uppercase", mb: 1, borderBottom: "1px solid #bfdbfe", pb: 0.5 }}>Bank Details</Typography>
+                <p style={{ margin: "4px 0" }}><strong>A/c Name:</strong> {companyDetails.bank.accountName}</p>
+                <p style={{ margin: "4px 0" }}><strong>A/c No:</strong> {companyDetails.bank.accountNumber} | <strong>IFSC:</strong> {companyDetails.bank.ifsc}</p>
+                <p style={{ margin: "4px 0" }}><strong>Bank:</strong> {companyDetails.bank.name}, {companyDetails.bank.branch}</p>
+              </Box>
+            </Box>
+            <Box sx={{ bgcolor: "#f8fafc", p: 2.5, borderRadius: 2, border: "1px solid #bfdbfe" }}>
+              <Typography sx={{ fontWeight: 700, color: "#1e3a5f", fontSize: "10px", textTransform: "uppercase", mb: 1.5, letterSpacing: 1, borderBottom: "1px solid #bfdbfe", pb: 0.5 }}>Investment Summary</Typography>
+              <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "11px", py: 0.3, color: "#64748b" }}><span>Base Price:</span><span>₹ {formatCurrency(calculations.originalBasePrice)}</span></Box>
+              {extraCosts.structureCost > 0 && <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "11px", py: 0.3, color: "#d97706" }}><span>+ Extra Structure:</span><span>₹ {formatCurrency(extraCosts.structureCost)}</span></Box>}
+              {extraCosts.panelsCost > 0 && <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "11px", py: 0.3, color: "#d97706" }}><span>+ Extra Panels ({extraPanelCount}):</span><span>₹ {formatCurrency(extraCosts.panelsCost)}</span></Box>}
+              {extraCosts.wireCost > 0 && <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "11px", py: 0.3, color: "#d97706" }}><span>+ Extra Wire ({extraWireLength}m):</span><span>₹ {formatCurrency(extraCosts.wireCost)}</span></Box>}
+              <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "11px", py: 0.3, color: "#64748b", borderBottom: "1px solid #e2e8f0", pb: 0.75, mb: 0.5 }}><span>GST (@ {gstRate}%):</span><span>₹ {formatCurrency(calculations.gstAmount)}</span></Box>
+              <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "16px", fontWeight: 900, color: "#1e3a5f", pt: 1 }}><span style={{ fontSize: "11px", textTransform: "uppercase" }}>Total Amount:</span><span style={{ color: "#1e40af" }}>₹ {formatCurrency(calculations.totalAmount)}</span></Box>
+              <Box sx={{ mt: 2, p: 1.5, bgcolor: "#dbeafe", border: "1px solid #93c5fd", borderRadius: 1.5, textAlign: "center" }}>
+                <Typography sx={{ fontSize: "9px", color: "#1e40af", textTransform: "uppercase", fontWeight: 900, letterSpacing: 1, mb: 0.5 }}>Effective Cost After Subsidy</Typography>
+                <Typography sx={{ fontSize: "24px", fontWeight: 900, color: "#16a34a", letterSpacing: "-1px" }}>₹ {formatCurrency(calculations.effectiveCost)}*</Typography>
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Terms */}
+          <Box sx={{ fontSize: "10px", borderTop: "1px solid #e2e8f0", pt: 2 }}>
+            <Typography sx={{ fontWeight: 900, color: "#1e293b", textTransform: "uppercase", mb: 1, letterSpacing: 1 }}>Terms and Conditions</Typography>
+            <Box component="ul" sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 32px", pl: 2, color: "#64748b", m: 0 }}>
+              {terms.map((term, i) => <li key={i} dangerouslySetInnerHTML={{ __html: term.replace(/^([^:]+):/, '<strong>$1:</strong>') }} />)}
+            </Box>
+          </Box>
+
+          {/* Signature */}
+          <Box sx={{ mt: 6, display: "flex", justifyContent: "space-between", alignItems: "flex-end", px: 2 }}>
+            <Box sx={{ textAlign: "center" }}>
+              <Box sx={{ width: 160, height: 1, bgcolor: "#cbd5e1", mb: 0.5, mx: "auto" }} />
+              <Typography sx={{ fontSize: "9px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Customer Signature</Typography>
+            </Box>
+            <Box sx={{ textAlign: "right" }}>
+              <Typography sx={{ fontSize: "14px", fontWeight: 900, color: "#1e3a5f", mb: 6, textDecoration: "underline", textDecorationColor: "#eab308", textUnderlineOffset: 4 }}>For Arpit Solar Shop</Typography>
+              <Box sx={{ width: 192, height: 1, bgcolor: "#cbd5e1", mb: 0.5, ml: "auto" }} />
+              <Typography sx={{ fontSize: "9px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Authorized Signatory</Typography>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Edit Component Dialog */}
+      <Dialog open={editComponentDialog} onClose={() => setEditComponentDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Component</DialogTitle>
+        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
+          <TextField fullWidth label="Component Name" value={editingComponent?.name || ""} onChange={(e) => setEditingComponent((prev) => prev && { ...prev, name: e.target.value })} />
+          <TextField fullWidth label="Description" value={editingComponent?.description || ""} onChange={(e) => setEditingComponent((prev) => prev && { ...prev, description: e.target.value })} />
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <TextField fullWidth label="Quantity" value={editingComponent?.quantity || ""} onChange={(e) => setEditingComponent((prev) => prev && { ...prev, quantity: e.target.value })} />
+            <TextField fullWidth label="Make" value={editingComponent?.make || ""} onChange={(e) => setEditingComponent((prev) => prev && { ...prev, make: e.target.value })} />
+          </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleDialogPrimary} variant="contained" color={dialogMode === "whatsapp" ? "success" : "primary"}>{dialogMode === "whatsapp" ? (loading ? "Sending..." : "Send") : (loading ? "Printing..." : "Print")}</Button>
-        </DialogActions>
+        <DialogActions><Button onClick={() => setEditComponentDialog(false)}>Cancel</Button><Button variant="contained" onClick={handleSaveComponentEdit}>Save</Button></DialogActions>
       </Dialog>
 
-      <Snackbar open={notification.open} autoHideDuration={6000} onClose={() => setNotification({ ...notification, open: false })}>
-        <Alert onClose={() => setNotification({ ...notification, open: false })} severity={notification.severity} sx={{ width: "100%" }}>{notification.message}</Alert>
-      </Snackbar>
+      {/* Add Component Dialog */}
+      <Dialog open={addComponentDialog} onClose={() => setAddComponentDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Add Component</DialogTitle>
+        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
+          <TextField fullWidth label="Component Name" value={newComponent.name} onChange={(e) => setNewComponent((prev) => ({ ...prev, name: e.target.value }))} />
+          <TextField fullWidth label="Description" value={newComponent.description} onChange={(e) => setNewComponent((prev) => ({ ...prev, description: e.target.value }))} />
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <TextField fullWidth label="Quantity" value={newComponent.quantity} onChange={(e) => setNewComponent((prev) => ({ ...prev, quantity: e.target.value }))} />
+            <TextField fullWidth label="Make" value={newComponent.make} onChange={(e) => setNewComponent((prev) => ({ ...prev, make: e.target.value }))} />
+          </Box>
+        </DialogContent>
+        <DialogActions><Button onClick={() => setAddComponentDialog(false)}>Cancel</Button><Button variant="contained" onClick={handleAddComponent}>Add</Button></DialogActions>
+      </Dialog>
 
-      {/* Hidden printable areas */}
-      <div style={{ display: "none" }}>
-        {/* Sales Copy (Internal) */}
-        <div ref={salesPrintRef} style={{ padding: 24, color: "black", width: "800px" }}>
-          <Box sx={{ mb: 2, display: "flex", justifyContent: "flex-start", alignItems: "center" }}>
-            <Image src={companyDetails.logo} alt="Arpit Solar Logo" width={140} height={50} style={{ height: 'auto' }} />
-          </Box>
-          <Box sx={{ mb: 1 }}>
-            <Typography variant="h6">Arpit Solar Shop - Sales Copy</Typography>
-            <Typography variant="body2">{nowString}</Typography>
-            <Typography variant="body2">Salesperson: {salespersonName || "N/A"}</Typography>
-            <Typography variant="body2">Location: {location}</Typography>
-            <Typography variant="body2">Suggested Inverter Capacity: {selectedProduct ? `${selectedProduct.kWp} kWp` : 'N/A'}</Typography>
-            <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 600 }}>Effective GST: {subtotal > 0 ? ((gstAmount / subtotal) * 100).toFixed(2) : '0.00'}%</Typography>
-          </Box>
-          <Divider sx={{ my: 1 }} />
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-            <Box>
-              <Typography variant="subtitle2" fontWeight={700}>Arpit Solar Shop</Typography>
-              <Typography variant="body2">SH16/114-25-K-2, Sharvodayanagar,</Typography>
-              <Typography variant="body2">Varanasi – 221003, Uttar Pradesh</Typography>
-            </Box>
-            <Box textAlign="right">
-              <Typography variant="body2">GSTIN: 09APKPM6299L1ZW</Typography>
-              <Typography variant="body2">Contact: 9044555572</Typography>
-              <Typography variant="body2">Email: info@arpitsolar.com</Typography>
-            </Box>
-          </Box>
-          <Typography variant="h6" gutterBottom>System Details</Typography>
-          {selectedProduct ? (
-            <>
-              <Typography>System: {selectedProduct.kWp} kWp (Phase {selectedProduct.phase})</Typography>
-              <Typography>Module: {selectedProduct.module}W × {selectedProduct.qty} Qty</Typography>
-            </>
-          ) : (
-            <Typography color="text.secondary">Please select a product to show system details.</Typography>
-          )}
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="h6" gutterBottom>Included Components</Typography>
-          <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-            <Table size="small">
-              <TableBody>
-                {components.map((c, idx) => (
-                  <TableRow key={`comp-sales-${idx}-${c.name}`}>
-                    <TableCell>{c.name}</TableCell>
-                    <TableCell>{[c.brand, c.spec].filter(Boolean).join(' ')}</TableCell>
-                    <TableCell align="right">{c.quantity}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <Typography variant="h6" gutterBottom>Price Breakdown</Typography>
-          <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                <TableBody>
-                <TableRow><TableCell>Base Price</TableCell><TableCell align="right">{formatCurrency(basePrice)}</TableCell></TableRow>
-                <TableRow><TableCell>Extra Margin</TableCell><TableCell align="right">{formatCurrency(marginPrice)}</TableCell></TableRow>
-                <TableRow><TableCell sx={{ pl: 4, color: "text.secondary" }}>Sales Incentive (from Margin)</TableCell><TableCell align="right" sx={{ color: "text.secondary" }}>{formatCurrency(salespersonIncentiveAmount)}</TableCell></TableRow>
-                <TableRow><TableCell sx={{ pl: 4, color: "text.secondary" }}>Company Retained Margin</TableCell><TableCell align="right" sx={{ color: "text.secondary" }}>{formatCurrency(companyRetainedMargin)}</TableCell></TableRow>
-                {wirePrice > 0 && (<TableRow><TableCell>Extra Wire Cost</TableCell><TableCell align="right">{formatCurrency(wirePrice)}</TableCell></TableRow>)}
-                {heightPrice > 0 && (<TableRow><TableCell>Extra Height Cost (H × Rate × kW)</TableCell><TableCell align="right">{formatCurrency(heightPrice)}</TableCell></TableRow>)}
-                {outOfVnsPrice > 0 && (<TableRow><TableCell>Logistics & Delivery Fee</TableCell><TableCell align="right">{formatCurrency(outOfVnsPrice)}</TableCell></TableRow>)}
-                <TableRow><TableCell sx={{ fontWeight: 600 }}>Subtotal (Before GST)</TableCell><TableCell align="right" sx={{ fontWeight: 600 }}>{formatCurrency(subtotal)}</TableCell></TableRow>
-                <TableRow><TableCell>{`Portion taxed @ ${gstFiveRatePercent}% (${gstFiveShare}% of subtotal)`}</TableCell><TableCell align="right">{formatCurrency(gst5Amount)}</TableCell></TableRow>
-                <TableRow><TableCell>{`Portion taxed @ ${gstEighteenRatePercent}% (${100 - gstFiveShare}% of subtotal)`}</TableCell><TableCell align="right">{formatCurrency(gst18Amount)}</TableCell></TableRow>
-                <TableRow><TableCell>{`GST (combined) — Effective ${subtotal > 0 ? ((gstAmount / subtotal) * 100).toFixed(2) : '0.00'}%`}</TableCell><TableCell align="right">{formatCurrency(gstAmount)}</TableCell></TableRow>
-                <TableRow><TableCell>Total (After GST)</TableCell><TableCell align="right">{formatCurrency(total)}</TableCell></TableRow>
-                {safeDiscount > 0 && (<TableRow><TableCell sx={{ color: "success.main", fontWeight: 600 }}>Discount</TableCell><TableCell align="right" sx={{ color: "success.main", fontWeight: 600 }}>-{formatCurrency(safeDiscount)}</TableCell></TableRow>)}
-                <TableRow sx={{ '& > *': { fontWeight: 700 } }}><TableCell>Grand Total</TableCell><TableCell align="right">{formatCurrency(grandTotal)}</TableCell></TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="caption">GST split: {gstFiveShare}% of subtotal @ {gstFiveRatePercent}% and {100 - gstFiveShare}% @ {gstEighteenRatePercent}% — effective {(subtotal > 0 ? ((gstAmount / subtotal) * 100).toFixed(2) : "0.00")}%</Typography>
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="caption">Internal copy for sales records. Not intended for customer distribution.</Typography>
-        </div>
-
-        {/* Customer Copy */}
-        <div ref={customerPrintRef} style={{ padding: 24, color: "black", width: "800px" }}>
-          <Box sx={{ mb: 2, display: "flex", justifyContent: "flex-start", alignItems: "center" }}>
-            <Image src={companyDetails.logo} alt="Arpit Solar Logo" width={140} height={50} style={{ height: 'auto' }} />
-          </Box>
-          <Box sx={{ mb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <Box>
-              <Typography variant="h6">Arpit Solar Shop - Quotation</Typography>
-              <Typography variant="body2">Date: {todayString}</Typography>
-            </Box>
-            <Box textAlign="right">
-              <Typography variant="subtitle2" fontWeight={700}>Arpit Solar Shop</Typography>
-              <Typography variant="body2">SH16/114-25-K-2, Sharvodayanagar,</Typography>
-              <Typography variant="body2">Varanasi – 221003, Uttar Pradesh</Typography>
-              <Typography variant="body2">GSTIN: 09APKPM6299L1ZW</Typography>
-              <Typography variant="body2">Contact: 9044555572</Typography>
-              <Typography variant="body2">Email: info@arpitsolar.com</Typography>
-            </Box>
-              <Typography variant="body2">Suggested Inverter Capacity: {selectedProduct ? `${selectedProduct.kWp} kWp` : 'N/A'}</Typography>
-              <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 600 }}>Effective GST: {subtotal > 0 ? ((gstAmount / subtotal) * 100).toFixed(2) : '0.00'}%</Typography>
-          </Box>
-          <Divider sx={{ my: 1 }} />
-          <Typography variant="h6" gutterBottom>Customer Details</Typography>
-          <Typography><strong>Name:</strong> {customerInfo.name || "N/A"}</Typography>
-          <Typography><strong>Phone:</strong> {customerInfo.phone || "N/A"}</Typography>
-          <Typography><strong>Address:</strong> {customerInfo.address || "N/A"}</Typography>
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="h6" gutterBottom>System Details</Typography>
-          {selectedProduct ? (
-            <>
-              <Typography>System: {selectedProduct.kWp} kWp (Phase {selectedProduct.phase})</Typography>
-              <Typography>Module: {selectedProduct.module}W × {selectedProduct.qty} Qty</Typography>
-            </>
-          ) : (
-            <Typography color="text.secondary">Please select a product to show system details.</Typography>
-          )}
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="h6" gutterBottom>Included Components</Typography>
-          <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-            <Table size="small">
-              <TableBody>
-                {components.map((c, idx) => (
-                  <TableRow key={`comp-cust-${idx}-${c.name}`}>
-                    <TableCell>{c.name}</TableCell>
-                    <TableCell>{[c.brand, c.spec].filter(Boolean).join(' ')}</TableCell>
-                    <TableCell align="right">{c.quantity}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <Typography variant="h6" gutterBottom>Price Summary</Typography>
-          <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                <TableBody>
-                <TableRow><TableCell>Base Price</TableCell><TableCell align="right">{formatCurrency(basePrice + marginPrice)}</TableCell></TableRow>
-                <TableRow><TableCell>Sales Incentive (from Margin)</TableCell><TableCell align="right">{formatCurrency(salespersonIncentiveAmount)}</TableCell></TableRow>
-                <TableRow><TableCell>Company Retained Margin</TableCell><TableCell align="right">{formatCurrency(companyRetainedMargin)}</TableCell></TableRow>
-                {wirePrice > 0 && (<TableRow><TableCell>Extra Wire Cost</TableCell><TableCell align="right">{formatCurrency(wirePrice)}</TableCell></TableRow>)}
-                {heightPrice > 0 && (<TableRow><TableCell>Extra Height Cost</TableCell><TableCell align="right">{formatCurrency(heightPrice)}</TableCell></TableRow>)}
-                {outOfVnsPrice > 0 && (<TableRow><TableCell>Logistics & Delivery Fee</TableCell><TableCell align="right">{formatCurrency(outOfVnsPrice)}</TableCell></TableRow>)}
-                <TableRow><TableCell sx={{ fontWeight: 600 }}>Subtotal (Before GST)</TableCell><TableCell align="right" sx={{ fontWeight: 600 }}>{formatCurrency(subtotal)}</TableCell></TableRow>
-                <TableRow><TableCell>{`Portion taxed @ ${gstFiveRatePercent}% (${gstFiveShare}% of subtotal)`}</TableCell><TableCell align="right">{formatCurrency(gst5Amount)}</TableCell></TableRow>
-                <TableRow><TableCell>{`Portion taxed @ ${gstEighteenRatePercent}% (${100 - gstFiveShare}% of subtotal)`}</TableCell><TableCell align="right">{formatCurrency(gst18Amount)}</TableCell></TableRow>
-                <TableRow><TableCell>{`GST (combined) — Effective ${subtotal > 0 ? ((gstAmount / subtotal) * 100).toFixed(2) : '0.00'}%`}</TableCell><TableCell align="right">{formatCurrency(gstAmount)}</TableCell></TableRow>
-                <TableRow><TableCell>Total (After GST)</TableCell><TableCell align="right">{formatCurrency(total)}</TableCell></TableRow>
-                {safeDiscount > 0 && (<TableRow><TableCell sx={{ color: "success.main", fontWeight: 600 }}>Discount</TableCell><TableCell align="right" sx={{ color: "success.main", fontWeight: 600 }}>-{formatCurrency(safeDiscount)}</TableCell></TableRow>)}
-                <TableRow sx={{ '& > *': { fontWeight: 700 } }}><TableCell>Grand Total</TableCell><TableCell align="right">{formatCurrency(grandTotal)}</TableCell></TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="caption">GST split: {gstFiveShare}% of subtotal @ {gstFiveRatePercent}% and {100 - gstFiveShare}% @ {gstEighteenRatePercent}% — effective {(subtotal > 0 ? ((gstAmount / subtotal) * 100).toFixed(2) : "0.00")}%</Typography>
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="caption">Thank you for considering Arpit Solar.</Typography>
-        </div>
-      </div>
-    </>
+      <Snackbar open={notification.open} autoHideDuration={5000} onClose={() => setNotification((prev) => ({ ...prev, open: false }))}><Alert severity={notification.severity}>{notification.message}</Alert></Snackbar>
+    </Box>
   );
 }

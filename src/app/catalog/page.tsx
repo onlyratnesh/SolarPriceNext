@@ -141,6 +141,9 @@ export default function ProductCatalogView() {
                             Phase
                           </TableCell>
                           <TableCell align="center" sx={{ fontWeight: 'bold' }}>
+                            Brand
+                          </TableCell>
+                          <TableCell align="center" sx={{ fontWeight: 'bold' }}>
                             Module (wp)
                           </TableCell>
                           <TableCell align="center" sx={{ fontWeight: 'bold' }}>
@@ -166,6 +169,7 @@ export default function ProductCatalogView() {
                                 variant="outlined"
                               />
                             </TableCell>
+                            <TableCell align="center">{(product as any).supplier ?? '-'}</TableCell>
                             <TableCell align="center">{product.module}wp</TableCell>
                             <TableCell align="center">{product.qty} Nos</TableCell>
                             <TableCell align="right" sx={{ fontWeight: 'bold', color: '#667eea' }}>

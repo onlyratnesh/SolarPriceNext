@@ -61,9 +61,20 @@ export async function POST(request: Request) {
 
     const htmlContent = generateQuoteHtml({
       ...quoteData,
-      components: defaultComponents,
+      components: quoteData.components || defaultComponents,
       logoUrl,
-      calculations: { basePrice, marginPrice, wirePrice, heightPrice, outOfVnsPrice, subtotal, gstAmount, total, discount, grandTotal }
+      // Pass frontend calculations directly, with fallback to computed values
+      calculations: {
+        ...quoteData.calculations,
+        basePrice: quoteData.calculations?.subtotal || quoteData.calculations?.basePrice || subtotal,
+        extraCosts: quoteData.calculations?.extraCosts || 0,
+        gstAmount: quoteData.calculations?.gstAmount || gstAmount,
+        total: quoteData.calculations?.total || quoteData.calculations?.grandTotal || grandTotal,
+        grandTotal: quoteData.calculations?.grandTotal || grandTotal,
+        centralSubsidy: quoteData.calculations?.centralSubsidy || 78000,
+        stateSubsidy: quoteData.calculations?.stateSubsidy || 30000,
+        effectiveCost: quoteData.calculations?.effectiveCost || 0
+      }
     });
 
     // Launch Chromium appropriately for the environment
@@ -95,7 +106,7 @@ export async function POST(request: Request) {
         margin: { top: '10mm', right: '10mm', bottom: '12mm', left: '10mm' }
       });
     } finally {
-      try { await browser.close(); } catch {}
+      try { await browser.close(); } catch { }
     }
 
     const fileName = `quotation-${quoteData.customerInfo.name.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
@@ -134,7 +145,7 @@ export async function POST(request: Request) {
           }
         }
       }
-    } catch {}
+    } catch { }
 
     await sendWhatsAppMessage(quoteData.customerInfo.phone, pdfUrl);
 

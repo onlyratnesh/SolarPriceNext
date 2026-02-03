@@ -1,0 +1,213 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import {
+    Box,
+    Typography,
+    Card,
+    CardContent,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    IconButton,
+    Chip,
+    CircularProgress,
+    TextField,
+    InputAdornment,
+} from "@mui/material";
+import { ArrowBack, Visibility, Delete, Search, WhatsApp, Print } from "@mui/icons-material";
+import Link from "next/link";
+
+type Quotation = {
+    id: string;
+    quote_number: string | null;
+    customer_name: string;
+    customer_phone: string | null;
+    capacity_kw: number | null;
+    total_amount: number | null;
+    status: string;
+    created_at: string;
+};
+
+export default function QuotationsAdminPage() {
+    const [quotations, setQuotations] = useState<Quotation[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const fetchQuotations = async () => {
+        try {
+            const res = await fetch("/api/quotations?limit=100");
+            const data = await res.json();
+            if (data.success) {
+                setQuotations(data.data || []);
+            }
+        } catch (error) {
+            console.error("Failed to fetch quotations:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchQuotations();
+    }, []);
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this quotation?")) return;
+
+        try {
+            const res = await fetch(`/api/quotations/${id}`, { method: "DELETE" });
+            const data = await res.json();
+            if (data.success) {
+                fetchQuotations();
+            }
+        } catch (error) {
+            console.error("Failed to delete quotation:", error);
+        }
+    };
+
+    const formatCurrency = (amount: number | null) => {
+        if (amount === null) return "-";
+        return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(amount);
+    };
+
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+        });
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case "draft":
+                return "warning";
+            case "sent":
+                return "info";
+            case "accepted":
+                return "success";
+            case "rejected":
+                return "error";
+            default:
+                return "default";
+        }
+    };
+
+    const filteredQuotations = quotations.filter(
+        (q) =>
+            q.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            q.quote_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            q.customer_phone?.includes(searchQuery)
+    );
+
+    return (
+        <Box sx={{ p: 3, bgcolor: "#f5f7fa", minHeight: "100vh" }}>
+            <Box sx={{ maxWidth: 1200, mx: "auto" }}>
+                {/* Header */}
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Link href="/admin">
+                            <IconButton>
+                                <ArrowBack />
+                            </IconButton>
+                        </Link>
+                        <Typography variant="h4" fontWeight="bold">
+                            Quotations
+                        </Typography>
+                    </Box>
+                    <TextField
+                        size="small"
+                        placeholder="Search by name, phone, or quote number..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <Search />
+                                </InputAdornment>
+                            ),
+                        }}
+                        sx={{ width: 300 }}
+                    />
+                </Box>
+
+                {/* Quotations Table */}
+                <Card sx={{ borderRadius: 2 }}>
+                    <CardContent>
+                        {loading ? (
+                            <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+                                <CircularProgress />
+                            </Box>
+                        ) : filteredQuotations.length === 0 ? (
+                            <Box sx={{ textAlign: "center", p: 4 }}>
+                                <Typography color="text.secondary">
+                                    {searchQuery ? "No quotations match your search." : "No quotations found."}
+                                </Typography>
+                            </Box>
+                        ) : (
+                            <TableContainer>
+                                <Table>
+                                    <TableHead>
+                                        <TableRow sx={{ bgcolor: "#f5f5f5" }}>
+                                            <TableCell sx={{ fontWeight: "bold" }}>Quote No.</TableCell>
+                                            <TableCell sx={{ fontWeight: "bold" }}>Customer</TableCell>
+                                            <TableCell sx={{ fontWeight: "bold" }}>Phone</TableCell>
+                                            <TableCell sx={{ fontWeight: "bold" }}>Capacity</TableCell>
+                                            <TableCell sx={{ fontWeight: "bold" }}>Amount</TableCell>
+                                            <TableCell sx={{ fontWeight: "bold" }}>Status</TableCell>
+                                            <TableCell sx={{ fontWeight: "bold" }}>Date</TableCell>
+                                            <TableCell sx={{ fontWeight: "bold" }} align="center">
+                                                Actions
+                                            </TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {filteredQuotations.map((quotation) => (
+                                            <TableRow key={quotation.id} hover>
+                                                <TableCell>
+                                                    <Typography variant="body2" fontWeight="medium">
+                                                        {quotation.quote_number || "-"}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell>{quotation.customer_name}</TableCell>
+                                                <TableCell>{quotation.customer_phone || "-"}</TableCell>
+                                                <TableCell>{quotation.capacity_kw ? `${quotation.capacity_kw} KW` : "-"}</TableCell>
+                                                <TableCell>{formatCurrency(quotation.total_amount)}</TableCell>
+                                                <TableCell>
+                                                    <Chip label={quotation.status} size="small" color={getStatusColor(quotation.status) as any} />
+                                                </TableCell>
+                                                <TableCell>{formatDate(quotation.created_at)}</TableCell>
+                                                <TableCell align="center">
+                                                    <IconButton size="small" title="View Details">
+                                                        <Visibility fontSize="small" />
+                                                    </IconButton>
+                                                    <IconButton size="small" color="success" title="Send via WhatsApp">
+                                                        <WhatsApp fontSize="small" />
+                                                    </IconButton>
+                                                    <IconButton size="small" color="error" onClick={() => handleDelete(quotation.id)} title="Delete">
+                                                        <Delete fontSize="small" />
+                                                    </IconButton>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Summary */}
+                <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+                    <Typography variant="body2" color="text.secondary">
+                        Showing {filteredQuotations.length} of {quotations.length} quotations
+                    </Typography>
+                </Box>
+            </Box>
+        </Box>
+    );
+}

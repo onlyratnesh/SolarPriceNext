@@ -65,6 +65,12 @@ export const SupplierTabs = [
     description: 'Without Battery',
     color: '#E61E63',
   },
+  {
+    id: 'integrated',
+    label: 'Integrated',
+    description: 'Integrated system packages',
+    color: '#0B6E4F',
+  },
 ];
 
 export default function ProductSelector({ onSelect, selectedProduct }: ProductSelectorProps) {
