@@ -111,7 +111,7 @@ export default function QuotationBuilder() {
   const effectiveInverterBrand = inverterBrand === "Other" ? customInverterBrand : inverterBrand;
 
   // Pricing
-  const [basePrice, setBasePrice] = useState<number>(165289.26);
+  const [priceInput, setPriceInput] = useState<number>(180000); // Now represents Price Included GST
   const [gstRate, setGstRate] = useState<number>(gstConfig.compositeRate);
   const [centralSubsidy, setCentralSubsidy] = useState<number>(defaultSubsidy.central);
   const [stateSubsidy, setStateSubsidy] = useState<number>(defaultSubsidy.state);
@@ -176,15 +176,33 @@ export default function QuotationBuilder() {
     return { structureCost, panelsCost, wireCost, total: structureCost + panelsCost + wireCost };
   }, [extraStructureEnabled, extraStructureRate, actualSystemSize, extraPanelsEnabled, extraPanelCount, extraPanelPrice, extraWireEnabled, extraWireLength, extraWireRate]);
 
-  // Calculate GST and totals (including extra costs)
+  // Calculate GST and totals (Reverse calculation from Inclusive Price)
   const calculations = useMemo(() => {
-    const totalBasePrice = basePrice + extraCosts.total;
-    const gstAmount = +(totalBasePrice * (gstRate / 100)).toFixed(2);
-    const totalAmount = +(totalBasePrice + gstAmount).toFixed(2);
+    // Reverse calculate base price from the input (which is GST inclusive)
+    // Formula: Inclusive = Base * (1 + Rate)  =>  Base = Inclusive / (1 + Rate)
+    const derivedBasePrice = priceInput / (1 + gstRate / 100);
+
+    // Add extra costs (assuming they act as taxable base additions) to the derived base
+    const totalTaxableValue = derivedBasePrice + extraCosts.total;
+
+    const gstAmount = +(totalTaxableValue * (gstRate / 100)).toFixed(2);
+    const totalAmount = +(totalTaxableValue + gstAmount).toFixed(2);
+
     const savings = calculateSavings(actualSystemSize, totalAmount, centralSubsidy, stateSubsidy);
     const effectiveCost = Math.max(0, totalAmount - centralSubsidy - stateSubsidy);
-    return { basePrice: totalBasePrice, originalBasePrice: basePrice, extraCostsTotal: extraCosts.total, gstRate, gstAmount, totalAmount, ...savings, effectiveCost };
-  }, [basePrice, extraCosts.total, gstRate, actualSystemSize, centralSubsidy, stateSubsidy]);
+
+    return {
+      basePrice: totalTaxableValue, // This is the total taxable base used for calculation
+      originalBasePrice: derivedBasePrice, // This is the base price of the system only
+      extraCostsTotal: extraCosts.total,
+      gstRate,
+      gstAmount,
+      totalAmount,
+      ...savings,
+      effectiveCost,
+      systemPriceIncGst: priceInput // Keep track of the input
+    };
+  }, [priceInput, extraCosts.total, gstRate, actualSystemSize, centralSubsidy, stateSubsidy]);
 
   const quoteNumber = useMemo(() => {
     if (!customerName) return "";
@@ -201,13 +219,13 @@ export default function QuotationBuilder() {
   const handleDeleteComponent = (index: number) => setComponents(components.filter((_, i) => i !== index));
   const handleAddComponent = () => { if (newComponent.name) { setComponents([...components, { ...newComponent, sort_order: components.length }]); setNewComponent({ name: "", description: "", quantity: "1 Nos", make: "Standard", sort_order: 0 }); setAddComponentDialog(false); } };
 
-  const handleReset = () => { setCustomerName(""); setCustomerPhone(""); setCustomerAddress(""); setCapacityKw(3); setPhase(1); setPanelWattage(620); setPanelBrand("Adani"); setBasePrice(165289.26); };
+  const handleReset = () => { setCustomerName(""); setCustomerPhone(""); setCustomerAddress(""); setCapacityKw(3); setPhase(1); setPanelWattage(620); setPanelBrand("Adani"); setPriceInput(180000); };
 
   const handleSaveQuotation = async () => {
     if (!customerName) { setNotification({ open: true, message: "Customer name is required", severity: "error" }); return; }
     setLoading(true);
     try {
-      const response = await fetch("/api/quotations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer_name: customerName, customer_phone: customerPhone, customer_address: customerAddress, system_type_name: selectedSystemType, capacity_kw: actualSystemSize, phase, brand: effectivePanelBrand, base_price: basePrice, gst_rate: gstRate, central_subsidy: centralSubsidy, state_subsidy: stateSubsidy, terms, components, salesperson: companyDetails.authorizedSignatory }) });
+      const response = await fetch("/api/quotations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer_name: customerName, customer_phone: customerPhone, customer_address: customerAddress, system_type_name: selectedSystemType, capacity_kw: actualSystemSize, phase, brand: effectivePanelBrand, base_price: calculations.basePrice, gst_rate: gstRate, central_subsidy: centralSubsidy, state_subsidy: stateSubsidy, terms, components, salesperson: companyDetails.authorizedSignatory }) });
       const result = await response.json();
       if (result.success) setNotification({ open: true, message: "Quotation saved successfully!", severity: "success" });
       else throw new Error(result.message || "Failed to save");
@@ -430,7 +448,7 @@ export default function QuotationBuilder() {
               <Typography variant="subtitle2" fontWeight="bold" color="#1e3a5f">Pricing</Typography>
             </AccordionSummary>
             <AccordionDetails sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
-              <TextField fullWidth label="Base Price (Excl. GST)" type="number" value={basePrice} onChange={(e) => setBasePrice(parseFloat(e.target.value) || 0)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" />
+              <TextField fullWidth label="System Price (Incl. GST)" type="number" value={priceInput} onChange={(e) => setPriceInput(parseFloat(e.target.value) || 0)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" />
               <Box sx={{ display: "flex", gap: 1 }}>
                 <TextField label="GST Rate" type="number" value={gstRate} onChange={(e) => setGstRate(parseFloat(e.target.value) || 0)} InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }} size="small" sx={{ flex: 1 }} />
                 <TextField label="GST Amount" value={`₹ ${formatCurrency(calculations.gstAmount)}`} InputProps={{ readOnly: true }} size="small" sx={{ flex: 1 }} />
