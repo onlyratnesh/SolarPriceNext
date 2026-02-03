@@ -80,12 +80,13 @@ export async function POST(request: Request) {
     // Launch Chromium appropriately for the environment
     let browser: any;
     if (process.env.NODE_ENV === 'production') {
-      const { default: chromium } = await import('@sparticuz/chromium');
-      const { default: puppeteerCore } = await import('puppeteer-core');
+      const chromium = require('@sparticuz/chromium-min');
+      const puppeteerCore = require('puppeteer-core');
+
       browser = await puppeteerCore.launch({
         args: chromium.args,
         defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath(),
+        executablePath: await chromium.executablePath('https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'),
         headless: chromium.headless,
       });
     } else {
