@@ -47,7 +47,6 @@ import {
   WhatsApp,
   Email,
   AddCircle,
-  Download,
 } from "@mui/icons-material";
 import { useReactToPrint } from "react-to-print";
 import Link from "next/link";
@@ -328,46 +327,7 @@ export default function QuotationBuilder() {
     finally { setLoading(false); }
   };
 
-  const handleDownloadPdf = async () => {
-    if (!customerName) { setNotification({ open: true, message: "Customer name is required", severity: "error" }); return; }
 
-    // Open window immediately to bypass popup blockers
-    const pdfWindow = window.open("", "_blank");
-    if (pdfWindow) {
-      pdfWindow.document.write("<html><body style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;'><div><h2>Generating PDF...</h2><p>Please wait, this may take a few seconds.</p></div></body></html>");
-    }
-
-    setLoading(true);
-    setNotification({ open: true, message: "Generating PDF for download...", severity: "info" });
-
-    try {
-      const quoteData = {
-        customerInfo: { name: customerName, phone: customerPhone || "", address: customerAddress || "" },
-        selectedProduct: { systemType: selectedSystemType, capacity: actualSystemSize, phase, panelBrand: effectivePanelBrand, panelWattage, panelType, inverterBrand: inverterModel },
-        calculations: { basePrice: calculations.originalBasePrice, extraCosts: extraCosts.total, subtotal: calculations.basePrice, gstAmount: calculations.gstAmount, total: calculations.totalAmount, grandTotal: calculations.totalAmount, centralSubsidy, stateSubsidy, effectiveCost: calculations.effectiveCost },
-        taxRate: gstRate / 100,
-        components,
-        terms,
-        skipWhatsApp: true
-      };
-
-      const response = await fetch("/api/quote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(quoteData) });
-      const result = await response.json();
-
-      if (response.ok && result.url) {
-        saveToDatabase(); // Auto-save
-        setNotification({ open: true, message: "PDF Ready!", severity: "success" });
-        if (pdfWindow) pdfWindow.location.href = result.url;
-      } else {
-        if (pdfWindow) pdfWindow.close();
-        throw new Error(result.message || "Failed to generate PDF");
-      }
-    } catch (error: any) {
-      if (pdfWindow) pdfWindow.close();
-      setNotification({ open: true, message: error.message, severity: "error" });
-    }
-    finally { setLoading(false); }
-  };
 
   // Email handler
   const [customerEmail, setCustomerEmail] = useState("");
@@ -653,9 +613,6 @@ export default function QuotationBuilder() {
         {/* Action Buttons */}
         <Box sx={{ p: 1.5, borderTop: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 1 }}>
           <Box sx={{ display: "flex", gap: 1 }}>
-            <Tooltip title="Download PDF">
-              <Button variant="contained" size="small" startIcon={<Download />} onClick={handleDownloadPdf} disabled={loading} sx={{ flex: 1, bgcolor: "#0ea5e9", "&:hover": { bgcolor: "#0284c7" } }}>Download</Button>
-            </Tooltip>
             <Tooltip title="Print Quotation">
               <Button variant="contained" size="small" startIcon={<Print />} onClick={() => { saveToDatabase(); handlePrint(); }} sx={{ flex: 1, bgcolor: "#eab308", "&:hover": { bgcolor: "#ca8a04" } }}>Print</Button>
             </Tooltip>
