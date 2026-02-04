@@ -144,11 +144,13 @@ export const defaultComponents = {
         { name: 'Lightning Arrestor', description: 'Conventional Type 1.25" Dia', quantity: '01 Set', make: 'Standard', sort_order: 9 },
     ],
     'VFD/Drive': [
-        { name: 'Solar Photovoltaic Modules', description: 'PV Modules', quantity: '8 Nos', make: 'Waaree/Adani', sort_order: 1 },
-        { name: 'VFD Drive', description: 'Variable Frequency Drive', quantity: '01 No', make: 'Standard', sort_order: 2 },
-        { name: 'Submersible Pump', description: 'AC Submersible Motor', quantity: '01 No', make: 'Standard', sort_order: 3 },
-        { name: 'DC Cables', description: 'PVC Insulated, UV Protected', quantity: '50 Mtrs', make: 'Standard', sort_order: 4 },
-        { name: 'Module Mounting Structure', description: 'GI 80 Micron', quantity: '01 Set', make: 'GI 80 Micron', sort_order: 5 },
+        { name: 'Solar Photovoltaic Modules', description: '600Wp (NDCR) Pv Modules', quantity: '48 NOS', make: 'Waaree / Adani Solar / Premier', sort_order: 1 },
+        { name: 'VFD Drive', description: '25HP VFD', quantity: '1 NOS', make: 'INVT / Crompton', sort_order: 2 },
+        { name: 'AC Cable', description: 'Copper, 6Sq mm', quantity: 'As per actual', make: 'Standard', sort_order: 3 },
+        { name: 'DC Interconnecting Cables', description: '1C x 4 sqmm 1.1kV, PVC insulated, UV Protected unarmored Cu Cable', quantity: '150 Mtrs', make: 'Standard', sort_order: 4 },
+        { name: 'Module Mounting Structure', description: 'MMS in pre GI sheet', quantity: '1 Set', make: 'GI 80 Micron', sort_order: 5 },
+        { name: 'Earthing System', description: '10 sqmm AL Solid Cable + Chemical earthing + 3nos copper bonded rod', quantity: 'As per actual', make: 'Standard', sort_order: 6 },
+        { name: 'Lightning Arrestor', description: 'Conventional Type 1.25" Dia.', quantity: '1 Set', make: 'Standard', sort_order: 7 },
     ],
 };
 
