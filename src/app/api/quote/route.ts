@@ -59,14 +59,16 @@ export async function POST(request: Request) {
       console.warn('Falling back to origin logo URL', logoError);
     }
 
-    // Generate UPI QR Code
+    // Load Static Payment QR Code
     let qrCodeUrl = '';
     const upiLink = `upi://pay?pa=${quoteData.companyDetails?.bank?.upiId || '9005770466@upi'}&pn=${encodeURIComponent(quoteData.companyDetails?.name || 'Arpit Solar Shop')}&am=${grandTotal}&cu=INR`;
+
     try {
-      const QRCode = require('qrcode');
-      qrCodeUrl = await QRCode.toDataURL(upiLink);
+      const qrPath = path.join(process.cwd(), 'public', 'payment.jpeg');
+      const qrBuffer = await fs.readFile(qrPath);
+      qrCodeUrl = `data:image/jpeg;base64,${qrBuffer.toString('base64')}`;
     } catch (qrError) {
-      console.warn('Failed to generate QR', qrError);
+      console.warn('payment.jpeg not found', qrError);
     }
 
     let signatureUrl = '';

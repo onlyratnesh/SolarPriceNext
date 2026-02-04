@@ -740,6 +740,13 @@ export default function QuotationBuilder() {
                 <p style={{ margin: "4px 0" }}><strong>A/c Name:</strong> {companyDetails.bank.accountName}</p>
                 <p style={{ margin: "4px 0" }}><strong>A/c No:</strong> {companyDetails.bank.accountNumber} | <strong>IFSC:</strong> {companyDetails.bank.ifsc}</p>
                 <p style={{ margin: "4px 0" }}><strong>Bank:</strong> {companyDetails.bank.name}, {companyDetails.bank.branch}</p>
+                <Box sx={{ mt: 1.5, pt: 1, borderTop: "1px dashed #cbd5e1", textAlign: "center" }}>
+                  <Typography sx={{ fontWeight: 700, color: "#1e3a5f", fontSize: "10px", mb: 0.5 }}>Scan to Pay</Typography>
+                  <a href={`upi://pay?pa=${companyDetails.bank.upiId}&pn=${encodeURIComponent(companyDetails.name)}&am=${calculations.totalAmount}&cu=INR`} style={{ textDecoration: "none" }}>
+                    <Box component="img" src="/payment.jpeg" alt="Payment QR" sx={{ width: 80, height: 80, mixBlendMode: "multiply", mx: "auto", display: "block", cursor: "pointer" }} onError={(e: any) => e.target.style.display = 'none'} />
+                  </a>
+                  <Typography sx={{ fontSize: "8px", color: "#64748b", mt: 0.25 }}>Click or Scan with UPI App</Typography>
+                </Box>
               </Box>
             </Box>
             <Box sx={{ bgcolor: "#f8fafc", p: 2.5, borderRadius: 2, border: "1px solid #bfdbfe" }}>
