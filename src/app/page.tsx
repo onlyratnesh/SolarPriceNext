@@ -222,16 +222,33 @@ export default function QuotationBuilder() {
 
   const handleReset = () => { setCustomerName(""); setCustomerPhone(""); setCustomerAddress(""); setCapacityKw(3); setPhase(1); setPanelWattage(620); setPanelBrand("Adani"); setPriceInput(180000); };
 
-  const handleSaveQuotation = async () => {
-    if (!customerName) { setNotification({ open: true, message: "Customer name is required", severity: "error" }); return; }
-    setLoading(true);
+  const saveToDatabase = async () => {
+    if (!customerName) return;
     try {
-      const response = await fetch("/api/quotations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer_name: customerName, customer_phone: customerPhone, customer_address: customerAddress, system_type_name: selectedSystemType, capacity_kw: actualSystemSize, phase, brand: effectivePanelBrand, base_price: calculations.basePrice, gst_rate: gstRate, central_subsidy: centralSubsidy, state_subsidy: stateSubsidy, terms, components, salesperson: companyDetails.authorizedSignatory }) });
-      const result = await response.json();
-      if (result.success) setNotification({ open: true, message: "Quotation saved successfully!", severity: "success" });
-      else throw new Error(result.message || "Failed to save");
-    } catch (error: any) { setNotification({ open: true, message: error.message, severity: "error" }); }
-    finally { setLoading(false); }
+      await fetch("/api/quotations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer_name: customerName,
+          customer_phone: customerPhone,
+          customer_address: customerAddress,
+          system_type_name: selectedSystemType,
+          capacity_kw: actualSystemSize,
+          phase,
+          brand: effectivePanelBrand,
+          base_price: calculations.basePrice,
+          gst_rate: gstRate,
+          central_subsidy: centralSubsidy,
+          state_subsidy: stateSubsidy,
+          terms,
+          components,
+          salesperson: companyDetails.authorizedSignatory
+        })
+      });
+      console.log("Quotation auto-saved to database");
+    } catch (error) {
+      console.error("Auto-save failed", error);
+    }
   };
 
   // Get quotation data for sharing
@@ -299,6 +316,7 @@ export default function QuotationBuilder() {
       const result = await response.json();
 
       if (response.ok) {
+        saveToDatabase(); // Auto-save
         setNotification({ open: true, message: "Quotation PDF sent to WhatsApp successfully!", severity: "success" });
       } else {
         throw new Error(result.message || "Failed to send WhatsApp");
@@ -337,6 +355,7 @@ export default function QuotationBuilder() {
       const result = await response.json();
 
       if (response.ok && result.url) {
+        saveToDatabase(); // Auto-save
         setNotification({ open: true, message: "PDF Ready!", severity: "success" });
         if (pdfWindow) pdfWindow.location.href = result.url;
       } else {
@@ -611,10 +630,7 @@ export default function QuotationBuilder() {
               <Button variant="contained" size="small" startIcon={<Download />} onClick={handleDownloadPdf} disabled={loading} sx={{ flex: 1, bgcolor: "#0ea5e9", "&:hover": { bgcolor: "#0284c7" } }}>Download</Button>
             </Tooltip>
             <Tooltip title="Print Quotation">
-              <Button variant="contained" size="small" startIcon={<Print />} onClick={() => handlePrint()} sx={{ flex: 1, bgcolor: "#eab308", "&:hover": { bgcolor: "#ca8a04" } }}>Print</Button>
-            </Tooltip>
-            <Tooltip title="Save to Database">
-              <Button variant="contained" size="small" startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <Save />} onClick={handleSaveQuotation} disabled={loading} sx={{ flex: 1, bgcolor: "#1e3a5f" }}>Save/DB</Button>
+              <Button variant="contained" size="small" startIcon={<Print />} onClick={() => { saveToDatabase(); handlePrint(); }} sx={{ flex: 1, bgcolor: "#eab308", "&:hover": { bgcolor: "#ca8a04" } }}>Print</Button>
             </Tooltip>
           </Box>
           <Box sx={{ display: "flex", gap: 1 }}>
