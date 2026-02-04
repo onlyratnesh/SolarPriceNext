@@ -170,52 +170,90 @@ export const generateQuoteHtml = (data: any): string => {
       <table>
         <thead>
           <tr>
-            <th>S.N</th>
-            <th>Components Description</th>
-            <th style="text-align: center;">Specifications / Make</th>
-            <th>Qty</th>
+            <th style="width: 40px; text-align: center;">S.N</th>
+            <th style="width: 25%;">Components</th>
+            <th>Description</th>
+            <th style="width: 10%; text-align: center;">Quantity</th>
+            <th style="width: 15%; text-align: center;">Make</th>
           </tr>
         </thead>
         <tbody>
           ${components.map((comp: any, i: number) => `
             <tr class="${i < 2 ? 'highlight-row' : ''}">
               <td class="td-center">${i + 1}</td>
-              <td>${comp.name || ''}</td>
-              <td class="td-center">${comp.description || ''} ${comp.make && comp.make !== 'Standard' ? `(${comp.make})` : ''}</td>
-              <td class="td-right">${comp.quantity || ''}</td>
+              <td style="font-weight: 700;">${comp.name || ''}</td>
+              <td>${comp.description || ''}</td>
+              <td class="td-center">${comp.quantity || ''}</td>
+              <td class="td-center" style="font-weight: 700; color: #1e40af;">${comp.make || ''}</td>
             </tr>
           `).join('')}
         </tbody>
       </table>
     </div>
+
+    <!-- Savings & Financial Breakdown Table -->
+    <div class="table-container" style="border: none; margin-bottom: 20px;">
+      <div class="info-title">Breakdown of Savings & Financials</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 40px; text-align: center;">S.No</th>
+            <th>Content</th>
+            <th style="text-align: right;">Amount / Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="td-center">1</td>
+            <td>Proposed Solar Plant Size</td>
+            <td class="td-right">${systemSize} KW</td>
+          </tr>
+          <tr>
+            <td class="td-center">2</td>
+            <td>Annual Units Generation (approx.)</td>
+            <td class="td-right">${n(data.savings?.annualUnits) || 0} Units</td>
+          </tr>
+          <tr>
+            <td class="td-center">3</td>
+            <td>Average Grid Electricity Rate</td>
+            <td class="td-right">Rs. 6.5 / Unit</td>
+          </tr>
+          <tr>
+            <td class="td-center">4</td>
+            <td><strong>Annual Savings</strong></td>
+            <td class="td-right" style="color: #16a34a; font-size: 12px;">Rs. ${formatCurrency(n(data.savings?.annualSavings))}</td>
+          </tr>
+          <tr style="background-color: #f0fdf4;">
+            <td class="td-center">5</td>
+            <td><strong>Subsidy Applicable</strong><br><span style="font-size: 9px; color: #64748b;">(Central + State Government)</span></td>
+            <td class="td-right" style="color: #166534;">
+              <div>Central: ₹ ${formatCurrency(centralSubsidy)}</div>
+              <div>State: ₹ ${formatCurrency(stateSubsidy)}</div>
+              <div style="border-top: 1px solid #bbf7d0; margin-top: 4px; padding-top: 4px; font-size: 13px;">Total: ₹ ${formatCurrency(centralSubsidy + stateSubsidy)}</div>
+            </td>
+          </tr>
+          <tr>
+            <td class="td-center">6</td>
+            <td><strong>Return on Investment (ROI)</strong><br><span style="font-size: 9px; color: #64748b;">Net Cost / Annual Savings</span></td>
+            <td class="td-right">
+              <div>Net Cost: ₹ ${formatCurrency(effectiveCost)}</div>
+              <div style="font-size: 14px; color: #ea580c; margin-top: 4px;">${data.savings?.roiYears || 0} Years</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     
-    <!-- Pricing & Subsidy -->
-    <div class="grid-2">
-      <div>
-        <div class="subsidy-box">
-          <div class="subsidy-title">PM Surya Ghar Subsidy</div>
-          <div class="subsidy-row"><span>Central Subsidy:</span> <strong>₹ ${formatCurrency(centralSubsidy)}/-</strong></div>
-          <div class="subsidy-row"><span>State Subsidy:</span> <strong>₹ ${formatCurrency(stateSubsidy)}/-</strong></div>
-          <div class="subsidy-total"><span>Total Benefit:</span> <span>₹ ${formatCurrency(centralSubsidy + stateSubsidy)}/-</span></div>
-        </div>
-        <div class="bank-box">
-          <div class="bank-title">Bank Details</div>
-          <div class="bank-row"><strong>A/c Name:</strong> ${company.bank.accountName}</div>
-          <div class="bank-row"><strong>A/c No:</strong> ${company.bank.accountNumber} | <strong>IFSC:</strong> ${company.bank.ifsc}</div>
-          <div class="bank-row"><strong>Bank:</strong> ${company.bank.name}, ${company.bank.branch}</div>
-        </div>
-      </div>
-      <div class="investment-box">
-        <div class="investment-title">Investment Summary</div>
+    <!-- Final Totals (Compact) -->
+    <div class="investment-box" style="margin-bottom: 20px;">
         <div class="price-row"><span>Base Price:</span> <span>₹ ${formatCurrency(basePrice - extraCosts)}</span></div>
         ${extraCosts > 0 ? `<div class="price-row extra"><span>+ Extra Costs:</span> <span>₹ ${formatCurrency(extraCosts)}</span></div>` : ''}
         <div class="price-row border"><span>GST (@ ${gstRate}%):</span> <span>₹ ${formatCurrency(gstAmount)}</span></div>
-        <div class="total-row"><span style="font-size: 10px; text-transform: uppercase;">Total Amount:</span> <span>₹ ${formatCurrency(total)}</span></div>
-        <div class="effective-box">
-          <div class="effective-label">Effective Cost After Subsidy</div>
-          <div class="effective-value">₹ ${formatCurrency(effectiveCost)}*</div>
+        <div class="total-row"><span style="font-size: 10px; text-transform: uppercase;">Grand Total:</span> <span>₹ ${formatCurrency(total)}</span></div>
+        <div class="effective-box" style="margin-top: 10px; padding: 10px;">
+          <div class="effective-label">Net Cost to Customer (After Subsidy)</div>
+          <div class="effective-value" style="font-size: 18px;">₹ ${formatCurrency(effectiveCost)}*</div>
         </div>
-      </div>
     </div>
     
     <!-- Terms -->

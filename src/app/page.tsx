@@ -301,6 +301,7 @@ export default function QuotationBuilder() {
           stateSubsidy,
           effectiveCost: calculations.effectiveCost
         },
+        savings: calculations,
         taxRate: gstRate / 100,
         components,
         terms
@@ -679,21 +680,45 @@ export default function QuotationBuilder() {
             <table style={{ width: "100%", fontSize: "11px", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ backgroundColor: "#f1f5f9", color: "#1e3a5f", borderBottom: "1px solid #e2e8f0" }}>
-                  <th style={{ padding: "10px 14px", textAlign: "left", width: "40px" }}>S.N</th>
-                  <th style={{ padding: "10px 14px", textAlign: "left" }}>Components Description</th>
-                  <th style={{ padding: "10px 14px", textAlign: "center" }}>Specifications / Make</th>
-                  <th style={{ padding: "10px 14px", textAlign: "right", width: "80px" }}>Qty</th>
+                  <th style={{ padding: "10px 6px", textAlign: "center", width: "30px" }}>S.N</th>
+                  <th style={{ padding: "10px 6px", textAlign: "left", width: "25%" }}>Components</th>
+                  <th style={{ padding: "10px 6px", textAlign: "left" }}>Description</th>
+                  <th style={{ padding: "10px 6px", textAlign: "center", width: "60px" }}>Qty</th>
+                  <th style={{ padding: "10px 6px", textAlign: "center", width: "80px" }}>Make</th>
                 </tr>
               </thead>
               <tbody>
                 {components.map((comp, index) => (
                   <tr key={index} style={{ backgroundColor: index % 2 === 1 ? "#f8fafc80" : "white", borderBottom: "1px solid #e2e8f0" }}>
-                    <td style={{ padding: "8px 14px", textAlign: "center", fontWeight: 700 }}>{index + 1}</td>
-                    <td style={{ padding: "8px 14px", fontWeight: index < 2 ? 700 : 500, color: index < 2 ? "#1e293b" : "#475569" }}>{comp.name}</td>
-                    <td style={{ padding: "8px 14px", textAlign: "center", fontStyle: index === 0 ? "italic" : "normal", color: index < 2 ? "#1e40af" : "#64748b" }}>{comp.description} {comp.make !== "Standard" ? `(${comp.make})` : ""}</td>
-                    <td style={{ padding: "8px 14px", textAlign: "right", fontWeight: 700, color: index < 2 ? "#1e40af" : "inherit" }}>{comp.quantity}</td>
+                    <td style={{ padding: "8px 6px", textAlign: "center", fontWeight: 700 }}>{index + 1}</td>
+                    <td style={{ padding: "8px 6px", fontWeight: 700, color: "#1e293b" }}>{comp.name}</td>
+                    <td style={{ padding: "8px 6px", color: index < 2 ? "#1e293b" : "#475569" }}>{comp.description}</td>
+                    <td style={{ padding: "8px 6px", textAlign: "center", fontWeight: 700 }}>{comp.quantity}</td>
+                    <td style={{ padding: "8px 6px", textAlign: "center", fontWeight: 700, color: "#1e40af" }}>{comp.make}</td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </Box>
+
+          {/* Savings Table */}
+          <Box sx={{ overflow: "hidden", mb: 3 }}>
+            <Typography sx={{ fontWeight: 700, color: "#1e3a5f", fontSize: "10px", textTransform: "uppercase", mb: 1, letterSpacing: 1, borderBottom: "1px solid #e2e8f0", pb: 0.5 }}>Breakdown of Savings & Financials</Typography>
+            <table style={{ width: "100%", fontSize: "11px", borderCollapse: "collapse", border: "1px solid #e2e8f0", borderRadius: "8px" }}>
+              <thead>
+                <tr style={{ backgroundColor: "#f8fafc", color: "#64748b" }}>
+                  <th style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #e2e8f0", width: "40px" }}>S.No</th>
+                  <th style={{ padding: "8px", textAlign: "left", borderBottom: "1px solid #e2e8f0" }}>Content</th>
+                  <th style={{ padding: "8px", textAlign: "right", borderBottom: "1px solid #e2e8f0" }}>Amount / Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>1</td><td style={{ padding: "8px", borderBottom: "1px solid #e2e8f0" }}>Proposed Solar Plant Size</td><td style={{ padding: "8px", textAlign: "right", fontWeight: "bold", borderBottom: "1px solid #e2e8f0" }}>{actualSystemSize} KW</td></tr>
+                <tr><td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>2</td><td style={{ padding: "8px", borderBottom: "1px solid #e2e8f0" }}>Annual Units Generation (approx.)</td><td style={{ padding: "8px", textAlign: "right", fontWeight: "bold", borderBottom: "1px solid #e2e8f0" }}>{calculations.annualUnits} Units</td></tr>
+                <tr><td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>3</td><td style={{ padding: "8px", borderBottom: "1px solid #e2e8f0" }}>Average Grid Electricity Rate</td><td style={{ padding: "8px", textAlign: "right", fontWeight: "bold", borderBottom: "1px solid #e2e8f0" }}>Rs. 6.5 / Unit</td></tr>
+                <tr><td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>4</td><td style={{ padding: "8px", borderBottom: "1px solid #e2e8f0" }}><strong>Annual Savings</strong></td><td style={{ padding: "8px", textAlign: "right", fontWeight: "bold", color: "#16a34a", borderBottom: "1px solid #e2e8f0" }}>Rs. {formatCurrency(calculations.annualSavings)}</td></tr>
+                <tr style={{ backgroundColor: "#f0fdf4" }}><td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>5</td><td style={{ padding: "8px", borderBottom: "1px solid #e2e8f0" }}><strong>Subsidy Applicable</strong> (Central + State)</td><td style={{ padding: "8px", textAlign: "right", fontWeight: "bold", color: "#166534", borderBottom: "1px solid #e2e8f0" }}>Total: ₹ {formatCurrency(calculations.totalSubsidy)}</td></tr>
+                <tr><td style={{ padding: "8px", textAlign: "center" }}>6</td><td style={{ padding: "8px" }}><strong>Return on Investment (ROI)</strong></td><td style={{ padding: "8px", textAlign: "right", fontWeight: "bold", color: "#ea580c" }}>{calculations.roiYears} Years</td></tr>
               </tbody>
             </table>
           </Box>
