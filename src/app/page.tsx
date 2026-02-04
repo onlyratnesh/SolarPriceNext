@@ -170,7 +170,7 @@ export default function QuotationBuilder() {
 
   // Handle Subsidy Logic: No subsidy for NDCR (Non-DCR) panels
   useEffect(() => {
-    if (panelType === "NDCR") {
+    if (panelType === "NDCR" || selectedSystemType === "Off-grid") {
       setCentralSubsidy(0);
       setStateSubsidy(0);
     } else {
@@ -178,7 +178,7 @@ export default function QuotationBuilder() {
       setCentralSubsidy(defaultSubsidy.central);
       setStateSubsidy(defaultSubsidy.state);
     }
-  }, [panelType]);
+  }, [panelType, selectedSystemType]);
 
   // Calculate extra costs
   const extraCosts = useMemo(() => {
@@ -729,12 +729,14 @@ export default function QuotationBuilder() {
           {/* Pricing & Subsidy */}
           <Box className="avoid-break" sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3, mb: 3 }}>
             <Box>
-              <Box sx={{ bgcolor: "#f0fdf4", border: "1px solid #bbf7d0", p: 2, borderRadius: 2, mb: 2 }}>
-                <Typography sx={{ fontWeight: 900, color: "#166534", fontSize: "10px", textTransform: "uppercase", mb: 1, letterSpacing: 1 }}>PM Surya Ghar Subsidy</Typography>
-                <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "12px", py: 0.5, borderBottom: "1px solid #bbf7d0" }}><span>Central Subsidy:</span><strong>₹ {formatCurrency(centralSubsidy)}/-</strong></Box>
-                <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "12px", py: 0.5, borderBottom: "1px solid #bbf7d0" }}><span>State Subsidy:</span><strong>₹ {formatCurrency(stateSubsidy)}/-</strong></Box>
-                <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "14px", pt: 1.5, fontWeight: 900, color: "#166534", textTransform: "uppercase" }}><span>Total Benefit:</span><span style={{ fontSize: "18px" }}>₹ {formatCurrency(calculations.totalSubsidy)}/-</span></Box>
-              </Box>
+              {calculations.totalSubsidy > 0 && (
+                <Box sx={{ bgcolor: "#f0fdf4", border: "1px solid #bbf7d0", p: 2, borderRadius: 2, mb: 2 }}>
+                  <Typography sx={{ fontWeight: 900, color: "#166534", fontSize: "10px", textTransform: "uppercase", mb: 1, letterSpacing: 1 }}>PM Surya Ghar Subsidy</Typography>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "12px", py: 0.5, borderBottom: "1px solid #bbf7d0" }}><span>Central Subsidy:</span><strong>₹ {formatCurrency(centralSubsidy)}/-</strong></Box>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "12px", py: 0.5, borderBottom: "1px solid #bbf7d0" }}><span>State Subsidy:</span><strong>₹ {formatCurrency(stateSubsidy)}/-</strong></Box>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "14px", pt: 1.5, fontWeight: 900, color: "#166534", textTransform: "uppercase" }}><span>Total Benefit:</span><span style={{ fontSize: "18px" }}>₹ {formatCurrency(calculations.totalSubsidy)}/-</span></Box>
+                </Box>
+              )}
               <Box sx={{ bgcolor: "#eff6ff", border: "1px solid #bfdbfe", p: 2, borderRadius: 2, fontSize: "10px" }}>
                 <Typography sx={{ fontWeight: 900, color: "#1e3a5f", textTransform: "uppercase", mb: 1, borderBottom: "1px solid #bfdbfe", pb: 0.5 }}>Bank Details</Typography>
                 <p style={{ margin: "4px 0" }}><strong>A/c Name:</strong> {companyDetails.bank.accountName}</p>
@@ -758,7 +760,7 @@ export default function QuotationBuilder() {
               <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "11px", py: 0.3, color: "#64748b", borderBottom: "1px solid #e2e8f0", pb: 0.75, mb: 0.5 }}><span>GST (@ {gstRate}%):</span><span>₹ {formatCurrency(calculations.gstAmount)}</span></Box>
               <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "16px", fontWeight: 900, color: "#1e3a5f", pt: 1 }}><span style={{ fontSize: "11px", textTransform: "uppercase" }}>Total Amount:</span><span style={{ color: "#1e40af" }}>₹ {formatCurrency(calculations.totalAmount)}</span></Box>
               <Box sx={{ mt: 2, p: 1.5, bgcolor: "#dbeafe", border: "1px solid #93c5fd", borderRadius: 1.5, textAlign: "center" }}>
-                <Typography sx={{ fontSize: "9px", color: "#1e40af", textTransform: "uppercase", fontWeight: 900, letterSpacing: 1, mb: 0.5 }}>Effective Cost After Subsidy</Typography>
+                <Typography sx={{ fontSize: "9px", color: "#1e40af", textTransform: "uppercase", fontWeight: 900, letterSpacing: 1, mb: 0.5 }}>{calculations.totalSubsidy > 0 ? "Effective Cost After Subsidy" : "Effective Cost"}</Typography>
                 <Typography sx={{ fontSize: "24px", fontWeight: 900, color: "#16a34a", letterSpacing: "-1px" }}>₹ {formatCurrency(calculations.effectiveCost)}*</Typography>
               </Box>
             </Box>

@@ -195,12 +195,14 @@ export const generateQuoteHtml = (data: any): string => {
     <!-- Pricing & Subsidy -->
     <div class="grid-2" style="margin-bottom: 20px;">
       <div>
+        ${(centralSubsidy + stateSubsidy) > 0 ? `
         <div class="subsidy-box">
           <div class="info-title" style="color: #166534;">PM Surya Ghar Subsidy</div>
           <div class="system-row" style="border-bottom: 1px solid #bbf7d0; justify-content: space-between;"><span>Central Subsidy:</span> <strong>₹ ${formatCurrency(centralSubsidy)}/-</strong></div>
           <div class="system-row" style="border-bottom: 1px solid #bbf7d0; justify-content: space-between;"><span>State Subsidy:</span> <strong>₹ ${formatCurrency(stateSubsidy)}/-</strong></div>
           <div class="system-row" style="color: #166534; font-size: 14px; margin-top: 4px; border: none; justify-content: space-between;"><span>Total Benefit:</span> <span style="font-size: 16px; font-weight: 900;">₹ ${formatCurrency(centralSubsidy + stateSubsidy)}/-</span></div>
         </div>
+        ` : ''}
         
         <div class="bank-box" style="margin-top: 15px;">
           <div class="info-title">Bank Details</div>
@@ -227,7 +229,7 @@ export const generateQuoteHtml = (data: any): string => {
         <div class="system-row" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 5px; justify-content: space-between;"><span>GST (@ ${gstRate}%):</span> <span>₹ ${formatCurrency(gstAmount)}</span></div>
         <div class="system-row" style="font-size: 16px; font-weight: 900; color: #1e3a5f; padding-top: 5px; justify-content: space-between;"><span style="font-size: 11px; text-transform: uppercase;">Total Amount:</span> <span style="color: #1e40af;">₹ ${formatCurrency(total)}</span></div>
         <div class="effective-box" style="margin-top: 10px; padding: 10px; background-color: #dbeafe; border: 1px solid #93c5fd; border-radius: 6px; text-align: center;">
-          <div class="effective-label" style="font-size: 9px; color: #1e40af; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; margin-bottom: 4px;">Effective Cost After Subsidy</div>
+          <div class="effective-label" style="font-size: 9px; color: #1e40af; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; margin-bottom: 4px;">${(centralSubsidy + stateSubsidy) > 0 ? 'Effective Cost After Subsidy' : 'Effective Cost'}</div>
           <div class="effective-value" style="font-size: 24px; font-weight: 900; color: #16a34a; letter-spacing: -1px;">₹ ${formatCurrency(effectiveCost)}*</div>
         </div>
       </div>
