@@ -73,7 +73,7 @@ export async function POST(request: Request) {
 
     let signatureUrl = '';
     try {
-      const sigPath = path.join(process.cwd(), 'public', 'sign_stamp.png');
+      const sigPath = path.join(process.cwd(), 'public', 'signature.png');
       const sigBuffer = await fs.readFile(sigPath);
       signatureUrl = `data:image/png;base64,${sigBuffer.toString('base64')}`;
     } catch (sigError) {
