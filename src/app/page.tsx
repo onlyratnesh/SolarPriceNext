@@ -699,8 +699,9 @@ export default function QuotationBuilder() {
               <Box sx={{ width: 160, height: 1, bgcolor: "#cbd5e1", mb: 0.5, mx: "auto" }} />
               <Typography sx={{ fontSize: "9px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Customer Signature</Typography>
             </Box>
-            <Box sx={{ textAlign: "right" }}>
-              <Typography sx={{ fontSize: "14px", fontWeight: 900, color: "#1e3a5f", mb: 6, textDecoration: "underline", textDecorationColor: "#eab308", textUnderlineOffset: 4 }}>For Arpit Solar Shop</Typography>
+            <Box sx={{ textAlign: "right", position: "relative" }}>
+              <Typography sx={{ fontSize: "14px", fontWeight: 900, color: "#1e3a5f", mb: 0, textDecoration: "underline", textDecorationColor: "#eab308", textUnderlineOffset: 4 }}>For Arpit Solar Shop</Typography>
+              <Box component="img" src="/Sign%20Stamp.png" alt="Authorized Signatory" sx={{ width: 120, height: 60, objectFit: "contain", display: "block", ml: "auto", my: 1 }} onError={(e: any) => e.target.style.display = 'none'} />
               <Box sx={{ width: 192, height: 1, bgcolor: "#cbd5e1", mb: 0.5, ml: "auto" }} />
               <Typography sx={{ fontSize: "9px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Authorized Signatory</Typography>
             </Box>

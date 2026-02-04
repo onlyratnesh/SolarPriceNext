@@ -59,10 +59,20 @@ export async function POST(request: Request) {
       console.warn('Falling back to origin logo URL', logoError);
     }
 
+    let signatureUrl = '';
+    try {
+      const sigPath = path.join(process.cwd(), 'public', 'Sign Stamp.png');
+      const sigBuffer = await fs.readFile(sigPath);
+      signatureUrl = `data:image/png;base64,${sigBuffer.toString('base64')}`;
+    } catch (sigError) {
+      console.warn('Signature image not found', sigError);
+    }
+
     const htmlContent = generateQuoteHtml({
       ...quoteData,
       components: quoteData.components || defaultComponents,
       logoUrl,
+      signatureUrl,
       // Pass frontend calculations directly, with fallback to computed values
       calculations: {
         ...quoteData.calculations,
