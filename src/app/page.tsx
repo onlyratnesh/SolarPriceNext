@@ -387,6 +387,7 @@ export default function QuotationBuilder() {
             padding: 0 !important; 
             visibility: visible !important;
             background: white !important;
+            overflow: visible !important;
           }
 
           /* The actual A4 Page - Keep formatting! */
@@ -394,11 +395,21 @@ export default function QuotationBuilder() {
             visibility: visible !important;
             width: 210mm !important;
             max-width: 100% !important;
-            padding: 15mm !important; /* Restored "Official" Margin */
+            padding: 15mm !important; 
             margin: 0 auto !important;
-            border: none !important; /* Clean paper look */
+            border: none !important; 
             box-shadow: none !important;
+            height: auto !important;
+            min-height: 297mm !important;
           }
+
+          /* Smart Page Breaks */
+          table { page-break-inside: auto; }
+          tr { page-break-inside: avoid; page-break-after: auto; }
+          thead { display: table-header-group; }
+          tfoot { display: table-footer-group; }
+          
+          .avoid-break { page-break-inside: avoid; break-inside: avoid; }
 
           body, html { 
             visibility: hidden; 
@@ -669,7 +680,7 @@ export default function QuotationBuilder() {
           </Box>
 
           {/* Customer & System Overview */}
-          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3, mb: 3 }}>
+          <Box className="avoid-break" sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3, mb: 3 }}>
             <Box sx={{ bgcolor: "#f8fafc", p: 2, borderRadius: 2, border: "1px solid #e2e8f0", overflow: "hidden" }}>
               <Typography sx={{ fontWeight: 700, color: "#1e3a5f", mb: 1, textTransform: "uppercase", fontSize: "10px", letterSpacing: 1, borderBottom: "1px solid #e2e8f0", pb: 0.5 }}>Customer Details</Typography>
               <Typography sx={{ fontWeight: 900, color: "#1e40af", fontSize: "16px", wordBreak: "break-word" }}>{customerName || "________________"}</Typography>
@@ -716,7 +727,7 @@ export default function QuotationBuilder() {
 
 
           {/* Pricing & Subsidy */}
-          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3, mb: 3 }}>
+          <Box className="avoid-break" sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3, mb: 3 }}>
             <Box>
               <Box sx={{ bgcolor: "#f0fdf4", border: "1px solid #bbf7d0", p: 2, borderRadius: 2, mb: 2 }}>
                 <Typography sx={{ fontWeight: 900, color: "#166534", fontSize: "10px", textTransform: "uppercase", mb: 1, letterSpacing: 1 }}>PM Surya Ghar Subsidy</Typography>
@@ -770,7 +781,7 @@ export default function QuotationBuilder() {
           </Box>
 
           {/* Terms */}
-          <Box sx={{ fontSize: "10px", borderTop: "1px solid #e2e8f0", pt: 2 }}>
+          <Box className="avoid-break" sx={{ fontSize: "10px", borderTop: "1px solid #e2e8f0", pt: 2 }}>
             <Typography sx={{ fontWeight: 900, color: "#1e293b", textTransform: "uppercase", mb: 1, letterSpacing: 1 }}>Terms and Conditions</Typography>
             <Box component="ul" sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 32px", pl: 2, color: "#64748b", m: 0 }}>
               {terms.map((term, i) => <li key={i} dangerouslySetInnerHTML={{ __html: term.replace(/^([^:]+):/, '<strong>$1:</strong>') }} />)}
