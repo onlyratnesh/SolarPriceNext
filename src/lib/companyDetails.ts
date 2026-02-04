@@ -20,6 +20,7 @@ export const companyDetails = {
         accountName: "Arpit Solar Shop",
         accountNumber: "28660200000614",
         ifsc: "BARB0SHIVBS",
+        upiId: "9005770466@upi", // Default UPI ID
     },
 
     // Logo

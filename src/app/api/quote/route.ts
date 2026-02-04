@@ -59,6 +59,16 @@ export async function POST(request: Request) {
       console.warn('Falling back to origin logo URL', logoError);
     }
 
+    // Generate UPI QR Code
+    let qrCodeUrl = '';
+    const upiLink = `upi://pay?pa=${quoteData.companyDetails?.bank?.upiId || '9005770466@upi'}&pn=${encodeURIComponent(quoteData.companyDetails?.name || 'Arpit Solar Shop')}&am=${grandTotal}&cu=INR`;
+    try {
+      const QRCode = require('qrcode');
+      qrCodeUrl = await QRCode.toDataURL(upiLink);
+    } catch (qrError) {
+      console.warn('Failed to generate QR', qrError);
+    }
+
     let signatureUrl = '';
     try {
       const sigPath = path.join(process.cwd(), 'public', 'sign_stamp.png');
@@ -84,7 +94,9 @@ export async function POST(request: Request) {
         centralSubsidy: quoteData.calculations?.centralSubsidy || 78000,
         stateSubsidy: quoteData.calculations?.stateSubsidy || 30000,
         effectiveCost: quoteData.calculations?.effectiveCost || 0
-      }
+      },
+      qrCodeUrl,
+      upiLink,
     });
 
     // Launch Chromium appropriately for the environment

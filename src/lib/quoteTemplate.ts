@@ -3,7 +3,7 @@
 import { companyDetails as defaultCompanyDetails } from './companyDetails';
 
 export const generateQuoteHtml = (data: any): string => {
-  const { customerInfo, selectedProduct, calculations, components = [], terms = [], logoUrl } = data;
+  const { customerInfo, selectedProduct, calculations, components = [], terms = [], logoUrl, qrCodeUrl, upiLink } = data;
   const company = defaultCompanyDetails;
 
   // Safe number extraction
@@ -191,6 +191,48 @@ export const generateQuoteHtml = (data: any): string => {
       </table>
     </div>
 
+
+    <!-- Pricing & Subsidy -->
+    <div class="grid-2" style="margin-bottom: 20px;">
+      <div>
+        <div class="subsidy-box">
+          <div class="info-title" style="color: #166534;">PM Surya Ghar Subsidy</div>
+          <div class="system-row" style="border-bottom: 1px solid #bbf7d0; justify-content: space-between;"><span>Central Subsidy:</span> <strong>₹ ${formatCurrency(centralSubsidy)}/-</strong></div>
+          <div class="system-row" style="border-bottom: 1px solid #bbf7d0; justify-content: space-between;"><span>State Subsidy:</span> <strong>₹ ${formatCurrency(stateSubsidy)}/-</strong></div>
+          <div class="system-row" style="color: #166534; font-size: 14px; margin-top: 4px; border: none; justify-content: space-between;"><span>Total Benefit:</span> <span style="font-size: 16px; font-weight: 900;">₹ ${formatCurrency(centralSubsidy + stateSubsidy)}/-</span></div>
+        </div>
+        
+        <div class="bank-box" style="margin-top: 15px;">
+          <div class="info-title">Bank Details</div>
+          <p style="margin: 4px 0;"><strong>A/c Name:</strong> ${company.bank.accountName}</p>
+          <p style="margin: 4px 0;"><strong>A/c No:</strong> ${company.bank.accountNumber} | <strong>IFSC:</strong> ${company.bank.ifsc}</p>
+          <p style="margin: 4px 0;"><strong>Bank:</strong> ${company.bank.name}, ${company.bank.branch}</p>
+          
+          ${qrCodeUrl ? `
+          <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e1; text-align: center;">
+              <div style="font-weight: 700; color: #1e3a5f; margin-bottom: 4px;">Scan to Pay</div>
+              <a href="${upiLink}" style="text-decoration: none;">
+                  <img src="${qrCodeUrl}" alt="Payment QR" style="width: 80px; height: 80px; mix-blend-mode: multiply;" />
+              </a>
+              <div style="font-size: 8px; color: #64748b; margin-top: 2px;">Click or Scan with UPI App</div>
+          </div>
+          ` : ''}
+        </div>
+      </div>
+      
+      <div class="investment-box">
+        <div class="info-title">Investment Summary</div>
+        <div class="system-row" style="justify-content: space-between;"><span>Base Price:</span> <span>₹ ${formatCurrency(basePrice - extraCosts)}</span></div>
+        ${extraCosts > 0 ? `<div class="system-row" style="color: #d97706; justify-content: space-between;"><span>+ Extra Costs:</span> <span>₹ ${formatCurrency(extraCosts)}</span></div>` : ''}
+        <div class="system-row" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 5px; justify-content: space-between;"><span>GST (@ ${gstRate}%):</span> <span>₹ ${formatCurrency(gstAmount)}</span></div>
+        <div class="system-row" style="font-size: 16px; font-weight: 900; color: #1e3a5f; padding-top: 5px; justify-content: space-between;"><span style="font-size: 11px; text-transform: uppercase;">Total Amount:</span> <span style="color: #1e40af;">₹ ${formatCurrency(total)}</span></div>
+        <div class="effective-box" style="margin-top: 10px; padding: 10px; background-color: #dbeafe; border: 1px solid #93c5fd; border-radius: 6px; text-align: center;">
+          <div class="effective-label" style="font-size: 9px; color: #1e40af; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; margin-bottom: 4px;">Effective Cost After Subsidy</div>
+          <div class="effective-value" style="font-size: 24px; font-weight: 900; color: #16a34a; letter-spacing: -1px;">₹ ${formatCurrency(effectiveCost)}*</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Savings & Financial Breakdown Table -->
     <div class="table-container" style="border: none; margin-bottom: 20px;">
       <div class="info-title">Breakdown of Savings & Financials</div>
@@ -242,18 +284,6 @@ export const generateQuoteHtml = (data: any): string => {
           </tr>
         </tbody>
       </table>
-    </div>
-    
-    <!-- Final Totals (Compact) -->
-    <div class="investment-box" style="margin-bottom: 20px;">
-        <div class="price-row"><span>Base Price:</span> <span>₹ ${formatCurrency(basePrice - extraCosts)}</span></div>
-        ${extraCosts > 0 ? `<div class="price-row extra"><span>+ Extra Costs:</span> <span>₹ ${formatCurrency(extraCosts)}</span></div>` : ''}
-        <div class="price-row border"><span>GST (@ ${gstRate}%):</span> <span>₹ ${formatCurrency(gstAmount)}</span></div>
-        <div class="total-row"><span style="font-size: 10px; text-transform: uppercase;">Grand Total:</span> <span>₹ ${formatCurrency(total)}</span></div>
-        <div class="effective-box" style="margin-top: 10px; padding: 10px;">
-          <div class="effective-label">Net Cost to Customer (After Subsidy)</div>
-          <div class="effective-value" style="font-size: 18px;">₹ ${formatCurrency(effectiveCost)}*</div>
-        </div>
     </div>
     
     <!-- Terms -->
