@@ -649,7 +649,7 @@ export default function QuotationBuilder() {
 
       {/* CENTER PREVIEW */}
       <Box className="print-content" sx={{ flex: 1, width: "100%", overflow: "auto", p: { xs: 2, md: 3 }, display: "flex", justifyContent: "center", bgcolor: "#e2e8f0" }}>
-        <Box ref={printRef} sx={{ width: "210mm", minHeight: "297mm", p: "15mm", bgcolor: "white", boxShadow: "0 4px 20px rgba(0,0,0,0.15)", fontFamily: "'Segoe UI', sans-serif", fontSize: "11px", color: "#1e293b", boxSizing: "border-box" }}>
+        <Box ref={printRef} className="print-content" sx={{ width: "210mm", minHeight: "297mm", p: "15mm", bgcolor: "white", boxShadow: "0 4px 20px rgba(0,0,0,0.15)", fontFamily: "'Segoe UI', sans-serif", fontSize: "11px", color: "#1e293b", boxSizing: "border-box" }}>
           {/* Header */}
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "4px solid #eab308", pb: 3, mb: 3 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
