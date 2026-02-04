@@ -78,7 +78,22 @@ export async function POST(request: Request) {
             state_subsidy
         );
 
+        // Resolve system_type_id if not provided but name is available
         const supabase = getServerSupabase();
+        let effectiveSystemTypeId = system_type_id;
+
+        if (!effectiveSystemTypeId && system_type_name) {
+            const { data: typeData } = await supabase
+                .from('system_types')
+                .select('id')
+                .eq('name', system_type_name)
+                .single();
+
+            if (typeData) {
+                effectiveSystemTypeId = typeData.id;
+            }
+        }
+
         const { data, error } = await supabase
             .from('quotations')
             .insert([{
@@ -87,7 +102,7 @@ export async function POST(request: Request) {
                 customer_phone: customer_phone || null,
                 customer_address: customer_address || null,
                 customer_email: customer_email || null,
-                system_type_id: system_type_id || null,
+                system_type_id: effectiveSystemTypeId || null,
                 capacity_kw: capacity_kw || null,
                 phase: phase || 1,
                 brand: brand || null,
