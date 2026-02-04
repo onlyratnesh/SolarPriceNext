@@ -713,27 +713,7 @@ export default function QuotationBuilder() {
             </table>
           </Box>
 
-          {/* Savings Table */}
-          <Box sx={{ overflow: "hidden", mb: 3 }}>
-            <Typography sx={{ fontWeight: 700, color: "#1e3a5f", fontSize: "10px", textTransform: "uppercase", mb: 1, letterSpacing: 1, borderBottom: "1px solid #e2e8f0", pb: 0.5 }}>Breakdown of Savings & Financials</Typography>
-            <table style={{ width: "100%", fontSize: "11px", borderCollapse: "collapse", border: "1px solid #e2e8f0", borderRadius: "8px" }}>
-              <thead>
-                <tr style={{ backgroundColor: "#f8fafc", color: "#64748b" }}>
-                  <th style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #e2e8f0", width: "40px" }}>S.No</th>
-                  <th style={{ padding: "8px", textAlign: "left", borderBottom: "1px solid #e2e8f0" }}>Content</th>
-                  <th style={{ padding: "8px", textAlign: "right", borderBottom: "1px solid #e2e8f0" }}>Amount / Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>1</td><td style={{ padding: "8px", borderBottom: "1px solid #e2e8f0" }}>Proposed Solar Plant Size</td><td style={{ padding: "8px", textAlign: "right", fontWeight: "bold", borderBottom: "1px solid #e2e8f0" }}>{actualSystemSize} KW</td></tr>
-                <tr><td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>2</td><td style={{ padding: "8px", borderBottom: "1px solid #e2e8f0" }}>Annual Units Generation (approx.)</td><td style={{ padding: "8px", textAlign: "right", fontWeight: "bold", borderBottom: "1px solid #e2e8f0" }}>{calculations.annualUnits} Units</td></tr>
-                <tr><td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>3</td><td style={{ padding: "8px", borderBottom: "1px solid #e2e8f0" }}>Average Grid Electricity Rate</td><td style={{ padding: "8px", textAlign: "right", fontWeight: "bold", borderBottom: "1px solid #e2e8f0" }}>Rs. 6.5 / Unit</td></tr>
-                <tr><td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>4</td><td style={{ padding: "8px", borderBottom: "1px solid #e2e8f0" }}><strong>Annual Savings</strong></td><td style={{ padding: "8px", textAlign: "right", fontWeight: "bold", color: "#16a34a", borderBottom: "1px solid #e2e8f0" }}>Rs. {formatCurrency(calculations.annualSavings)}</td></tr>
-                <tr style={{ backgroundColor: "#f0fdf4" }}><td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>5</td><td style={{ padding: "8px", borderBottom: "1px solid #e2e8f0" }}><strong>Subsidy Applicable</strong> (Central + State)</td><td style={{ padding: "8px", textAlign: "right", fontWeight: "bold", color: "#166534", borderBottom: "1px solid #e2e8f0" }}>Total: ₹ {formatCurrency(calculations.totalSubsidy)}</td></tr>
-                <tr><td style={{ padding: "8px", textAlign: "center" }}>6</td><td style={{ padding: "8px" }}><strong>Return on Investment (ROI)</strong></td><td style={{ padding: "8px", textAlign: "right", fontWeight: "bold", color: "#ea580c" }}>{calculations.roiYears} Years</td></tr>
-              </tbody>
-            </table>
-          </Box>
+
 
           {/* Pricing & Subsidy */}
           <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3, mb: 3 }}>
@@ -764,6 +744,29 @@ export default function QuotationBuilder() {
                 <Typography sx={{ fontSize: "24px", fontWeight: 900, color: "#16a34a", letterSpacing: "-1px" }}>₹ {formatCurrency(calculations.effectiveCost)}*</Typography>
               </Box>
             </Box>
+          </Box>
+
+
+          {/* Savings Table */}
+          <Box sx={{ overflow: "hidden", mb: 3 }}>
+            <Typography sx={{ fontWeight: 700, color: "#1e3a5f", fontSize: "10px", textTransform: "uppercase", mb: 1, letterSpacing: 1, borderBottom: "1px solid #e2e8f0", pb: 0.5 }}>Breakdown of Savings & Financials</Typography>
+            <table style={{ width: "100%", fontSize: "11px", borderCollapse: "collapse", border: "1px solid #e2e8f0", borderRadius: "8px" }}>
+              <thead>
+                <tr style={{ backgroundColor: "#f8fafc", color: "#64748b" }}>
+                  <th style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #e2e8f0", width: "40px" }}>S.No</th>
+                  <th style={{ padding: "8px", textAlign: "left", borderBottom: "1px solid #e2e8f0" }}>Content</th>
+                  <th style={{ padding: "8px", textAlign: "right", borderBottom: "1px solid #e2e8f0" }}>Amount / Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>1</td><td style={{ padding: "8px", borderBottom: "1px solid #e2e8f0" }}>Proposed Solar Plant Size</td><td style={{ padding: "8px", textAlign: "right", fontWeight: "bold", borderBottom: "1px solid #e2e8f0" }}>{actualSystemSize} KW</td></tr>
+                <tr><td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>2</td><td style={{ padding: "8px", borderBottom: "1px solid #e2e8f0" }}>Annual Units Generation (approx.)</td><td style={{ padding: "8px", textAlign: "right", fontWeight: "bold", borderBottom: "1px solid #e2e8f0" }}>{calculations.annualUnits} Units</td></tr>
+                <tr><td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>3</td><td style={{ padding: "8px", borderBottom: "1px solid #e2e8f0" }}>Average Grid Electricity Rate</td><td style={{ padding: "8px", textAlign: "right", fontWeight: "bold", borderBottom: "1px solid #e2e8f0" }}>Rs. 6.5 / Unit</td></tr>
+                <tr><td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>4</td><td style={{ padding: "8px", borderBottom: "1px solid #e2e8f0" }}><strong>Annual Savings</strong></td><td style={{ padding: "8px", textAlign: "right", fontWeight: "bold", color: "#16a34a", borderBottom: "1px solid #e2e8f0" }}>Rs. {formatCurrency(calculations.annualSavings)}</td></tr>
+                <tr style={{ backgroundColor: "#f0fdf4" }}><td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>5</td><td style={{ padding: "8px", borderBottom: "1px solid #e2e8f0" }}><strong>Subsidy Applicable</strong> (Central + State)</td><td style={{ padding: "8px", textAlign: "right", fontWeight: "bold", color: "#166534", borderBottom: "1px solid #e2e8f0" }}>Total: ₹ {formatCurrency(calculations.totalSubsidy)}</td></tr>
+                <tr><td style={{ padding: "8px", textAlign: "center" }}>6</td><td style={{ padding: "8px" }}><strong>Return on Investment (ROI)</strong></td><td style={{ padding: "8px", textAlign: "right", fontWeight: "bold", color: "#ea580c" }}>{calculations.roiYears} Years</td></tr>
+              </tbody>
+            </table>
           </Box>
 
           {/* Terms */}
