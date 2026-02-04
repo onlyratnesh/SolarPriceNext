@@ -403,10 +403,37 @@ export default function QuotationBuilder() {
       <style jsx global>{`
         @media print {
           .no-print { display: none !important; }
-          .print-content { display: block !important; width: 100% !important; height: auto !important; overflow: visible !important; position: absolute; left: 0; top: 0; padding: 0 !important; margin: 0 !important; }
-          body, html { visibility: hidden; height: auto !important; overflow: visible !important; }
-          .print-content, .print-content * { visibility: visible; }
-          .print-content { visibility: visible; }
+          
+          /* Wrapper resets body/container layout */
+          .print-wrapper { 
+            position: absolute !important; 
+            left: 0 !important; 
+            top: 0 !important; 
+            width: 100% !important; 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            visibility: visible !important;
+            background: white !important;
+          }
+
+          /* The actual A4 Page - Keep formatting! */
+          .print-page { 
+            visibility: visible !important;
+            width: 210mm !important;
+            max-width: 100% !important;
+            padding: 15mm !important; /* Restored "Official" Margin */
+            margin: 0 auto !important;
+            border: none !important; /* Clean paper look */
+            box-shadow: none !important;
+          }
+
+          body, html { 
+            visibility: hidden; 
+            height: auto !important; 
+            overflow: visible !important; 
+          }
+          
+          .print-wrapper * { visibility: visible; }
         }
       `}</style>
       {/* LEFT EDIT PANEL */}
@@ -648,8 +675,8 @@ export default function QuotationBuilder() {
       </Box>
 
       {/* CENTER PREVIEW */}
-      <Box className="print-content" sx={{ flex: 1, width: "100%", overflow: "auto", p: { xs: 2, md: 3 }, display: "flex", justifyContent: "center", bgcolor: "#e2e8f0" }}>
-        <Box ref={printRef} className="print-content" sx={{ width: "210mm", minHeight: "297mm", p: "15mm", bgcolor: "white", boxShadow: "0 4px 20px rgba(0,0,0,0.15)", fontFamily: "'Segoe UI', sans-serif", fontSize: "11px", color: "#1e293b", boxSizing: "border-box" }}>
+      <Box className="print-wrapper" sx={{ flex: 1, width: "100%", overflow: "auto", p: { xs: 2, md: 3 }, display: "flex", justifyContent: "center", bgcolor: "#e2e8f0" }}>
+        <Box ref={printRef} className="print-page" sx={{ width: "210mm", minHeight: "297mm", p: "15mm", bgcolor: "white", boxShadow: "0 4px 20px rgba(0,0,0,0.15)", fontFamily: "'Segoe UI', sans-serif", fontSize: "11px", color: "#1e293b", boxSizing: "border-box" }}>
           {/* Header */}
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "4px solid #eab308", pb: 3, mb: 3 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
