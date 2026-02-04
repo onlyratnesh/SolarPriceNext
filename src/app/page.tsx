@@ -134,7 +134,7 @@ export default function QuotationBuilder() {
 
   // UI State
   const [loading, setLoading] = useState(false);
-  const [notification, setNotification] = useState<{ open: boolean; message: string; severity: "success" | "error" }>({ open: false, message: "", severity: "success" });
+  const [notification, setNotification] = useState<{ open: boolean; message: string; severity: "success" | "error" | "info" | "warning" }>({ open: false, message: "", severity: "success" });
   const [editComponentDialog, setEditComponentDialog] = useState(false);
   const [editingComponent, setEditingComponent] = useState<QuotationComponent | null>(null);
   const [editingIndex, setEditingIndex] = useState<number>(-1);
@@ -144,8 +144,8 @@ export default function QuotationBuilder() {
   const printRef = useRef<HTMLDivElement>(null);
 
   // Calculate number of panels needed
-  const numberOfPanels = useMemo(() => Math.ceil((capacityKw * 1000) / panelWattage), [capacityKw, panelWattage]);
-  const actualSystemSize = useMemo(() => +((numberOfPanels * panelWattage) / 1000).toFixed(2), [numberOfPanels, panelWattage]);
+  const numberOfPanels = useMemo(() => Math.ceil((capacityKw * 1000) / (panelWattage || 1)), [capacityKw, panelWattage]);
+  const actualSystemSize = useMemo(() => +((numberOfPanels * (panelWattage || 0)) / 1000).toFixed(2), [numberOfPanels, panelWattage]);
 
   // Load default components when system type changes
   useEffect(() => {
@@ -400,8 +400,8 @@ export default function QuotationBuilder() {
             </AccordionSummary>
             <AccordionDetails sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
               <Box sx={{ display: "flex", gap: 1 }}>
-                <TextField label="Capacity (KW)" type="number" value={capacityKw} onChange={(e) => setCapacityKw(parseFloat(e.target.value) || 0)} inputProps={{ step: 0.1, min: 1 }} size="small" sx={{ flex: 1 }} />
-                <TextField label="Wattage (Wp)" type="number" value={panelWattage} onChange={(e) => setPanelWattage(parseInt(e.target.value) || 540)} inputProps={{ step: 5, min: 100 }} size="small" sx={{ flex: 1 }} />
+                <TextField label="Capacity (KW)" type="number" value={capacityKw} onChange={(e) => setCapacityKw(e.target.value === "" ? 0 : parseFloat(e.target.value))} inputProps={{ step: 0.1, min: 0 }} size="small" sx={{ flex: 1 }} />
+                <TextField label="Wattage (Wp)" type="number" value={panelWattage} onChange={(e) => setPanelWattage(e.target.value === "" ? 0 : parseInt(e.target.value))} inputProps={{ step: 5, min: 0 }} size="small" sx={{ flex: 1 }} />
               </Box>
               <Box sx={{ display: "flex", gap: 1 }}>
                 <TextField label="Panels" value={numberOfPanels} InputProps={{ readOnly: true }} size="small" sx={{ flex: 1, "& input": { fontWeight: "bold", color: "#1e3a5f" } }} />
@@ -448,14 +448,14 @@ export default function QuotationBuilder() {
               <Typography variant="subtitle2" fontWeight="bold" color="#1e3a5f">Pricing</Typography>
             </AccordionSummary>
             <AccordionDetails sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
-              <TextField fullWidth label="System Price (Incl. GST)" type="number" value={priceInput} onChange={(e) => setPriceInput(parseFloat(e.target.value) || 0)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" />
+              <TextField fullWidth label="System Price (Incl. GST)" type="number" value={priceInput} onChange={(e) => setPriceInput(e.target.value === "" ? 0 : parseFloat(e.target.value))} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" />
               <Box sx={{ display: "flex", gap: 1 }}>
-                <TextField label="GST Rate" type="number" value={gstRate} onChange={(e) => setGstRate(parseFloat(e.target.value) || 0)} InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }} size="small" sx={{ flex: 1 }} />
+                <TextField label="GST Rate" type="number" value={gstRate} onChange={(e) => setGstRate(e.target.value === "" ? 0 : parseFloat(e.target.value))} InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }} size="small" sx={{ flex: 1 }} />
                 <TextField label="GST Amount" value={`₹ ${formatCurrency(calculations.gstAmount)}`} InputProps={{ readOnly: true }} size="small" sx={{ flex: 1 }} />
               </Box>
               <Box sx={{ display: "flex", gap: 1 }}>
-                <TextField label="Central Subsidy" type="number" value={centralSubsidy} onChange={(e) => setCentralSubsidy(parseFloat(e.target.value) || 0)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" sx={{ flex: 1 }} />
-                <TextField label="State Subsidy" type="number" value={stateSubsidy} onChange={(e) => setStateSubsidy(parseFloat(e.target.value) || 0)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" sx={{ flex: 1 }} />
+                <TextField label="Central Subsidy" type="number" value={centralSubsidy} onChange={(e) => setCentralSubsidy(e.target.value === "" ? 0 : parseFloat(e.target.value))} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" sx={{ flex: 1 }} />
+                <TextField label="State Subsidy" type="number" value={stateSubsidy} onChange={(e) => setStateSubsidy(e.target.value === "" ? 0 : parseFloat(e.target.value))} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" sx={{ flex: 1 }} />
               </Box>
               <Box sx={{ p: 1.5, bgcolor: "#dbeafe", borderRadius: 1, textAlign: "center" }}>
                 <Typography variant="caption" sx={{ color: "#1e40af", textTransform: "uppercase", fontWeight: 700 }}>Effective Cost</Typography>
@@ -481,7 +481,7 @@ export default function QuotationBuilder() {
                 />
                 {extraStructureEnabled && (
                   <Box sx={{ display: "flex", gap: 1, mt: 1, alignItems: "center" }}>
-                    <TextField label="Rate/Watt" type="number" value={extraStructureRate} onChange={(e) => setExtraStructureRate(parseFloat(e.target.value) || 0)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" sx={{ width: 100 }} />
+                    <TextField label="Rate/Watt" type="number" value={extraStructureRate} onChange={(e) => setExtraStructureRate(e.target.value === "" ? 0 : parseFloat(e.target.value))} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" sx={{ width: 100 }} />
                     <Typography variant="caption" color="text.secondary">× {actualSystemSize * 1000}W =</Typography>
                     <Typography variant="body2" fontWeight="bold" color="#d97706">₹{formatCurrency(extraCosts.structureCost)}</Typography>
                   </Box>
@@ -496,9 +496,9 @@ export default function QuotationBuilder() {
                 />
                 {extraPanelsEnabled && (
                   <Box sx={{ display: "flex", gap: 1, mt: 1, alignItems: "center", flexWrap: "wrap" }}>
-                    <TextField label="Qty" type="number" value={extraPanelCount} onChange={(e) => setExtraPanelCount(parseInt(e.target.value) || 1)} inputProps={{ min: 1 }} size="small" sx={{ width: 70 }} />
+                    <TextField label="Qty" type="number" value={extraPanelCount} onChange={(e) => setExtraPanelCount(e.target.value === "" ? 0 : parseInt(e.target.value))} inputProps={{ min: 0 }} size="small" sx={{ width: 70 }} />
                     <Typography variant="caption">×</Typography>
-                    <TextField label="Price/Panel" type="number" value={extraPanelPrice} onChange={(e) => setExtraPanelPrice(parseFloat(e.target.value) || 0)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" sx={{ width: 110 }} />
+                    <TextField label="Price/Panel" type="number" value={extraPanelPrice} onChange={(e) => setExtraPanelPrice(e.target.value === "" ? 0 : parseFloat(e.target.value))} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" sx={{ width: 110 }} />
                     <Typography variant="caption">=</Typography>
                     <Typography variant="body2" fontWeight="bold" color="#d97706">₹{formatCurrency(extraCosts.panelsCost)}</Typography>
                   </Box>
@@ -513,9 +513,9 @@ export default function QuotationBuilder() {
                 />
                 {extraWireEnabled && (
                   <Box sx={{ display: "flex", gap: 1, mt: 1, alignItems: "center", flexWrap: "wrap" }}>
-                    <TextField label="Length (m)" type="number" value={extraWireLength} onChange={(e) => setExtraWireLength(parseFloat(e.target.value) || 0)} inputProps={{ min: 1 }} size="small" sx={{ width: 90 }} />
+                    <TextField label="Length (m)" type="number" value={extraWireLength} onChange={(e) => setExtraWireLength(e.target.value === "" ? 0 : parseFloat(e.target.value))} inputProps={{ min: 0 }} size="small" sx={{ width: 90 }} />
                     <Typography variant="caption">×</Typography>
-                    <TextField label="Rate/m" type="number" value={extraWireRate} onChange={(e) => setExtraWireRate(parseFloat(e.target.value) || 0)} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" sx={{ width: 100 }} />
+                    <TextField label="Rate/m" type="number" value={extraWireRate} onChange={(e) => setExtraWireRate(e.target.value === "" ? 0 : parseFloat(e.target.value))} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} size="small" sx={{ width: 100 }} />
                     <Typography variant="caption">=</Typography>
                     <Typography variant="body2" fontWeight="bold" color="#d97706">₹{formatCurrency(extraCosts.wireCost)}</Typography>
                   </Box>
