@@ -168,6 +168,18 @@ export default function QuotationBuilder() {
     setInverterModel(`${inverterCapacity} KW ${selectedSystemType} String`);
   }, [capacityKw, selectedSystemType]);
 
+  // Handle Subsidy Logic: No subsidy for NDCR (Non-DCR) panels
+  useEffect(() => {
+    if (panelType === "NDCR") {
+      setCentralSubsidy(0);
+      setStateSubsidy(0);
+    } else {
+      // Restore default subsidies for DCR/Other types
+      setCentralSubsidy(defaultSubsidy.central);
+      setStateSubsidy(defaultSubsidy.state);
+    }
+  }, [panelType]);
+
   // Calculate extra costs
   const extraCosts = useMemo(() => {
     const structureCost = extraStructureEnabled ? (actualSystemSize * 1000 * extraStructureRate) : 0;
