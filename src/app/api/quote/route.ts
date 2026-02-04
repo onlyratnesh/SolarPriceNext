@@ -61,14 +61,14 @@ export async function POST(request: Request) {
 
     // Load Static Payment QR Code
     let qrCodeUrl = '';
-    const upiLink = `upi://pay?pa=${quoteData.companyDetails?.bank?.upiId || '9005770466@upi'}&pn=${encodeURIComponent(quoteData.companyDetails?.name || 'Arpit Solar Shop')}&am=${grandTotal}&cu=INR`;
+    const upiLink = `upi://pay?pa=${quoteData.companyDetails?.bank?.upiId || '9044555574@okbizaxis'}&pn=${encodeURIComponent(quoteData.companyDetails?.name || 'Arpit Solar Shop')}&am=${grandTotal}&cu=INR`;
 
     try {
-      const qrPath = path.join(process.cwd(), 'public', 'payment.jpeg');
+      const qrPath = path.join(process.cwd(), 'public', 'payment.png');
       const qrBuffer = await fs.readFile(qrPath);
-      qrCodeUrl = `data:image/jpeg;base64,${qrBuffer.toString('base64')}`;
+      qrCodeUrl = `data:image/png;base64,${qrBuffer.toString('base64')}`;
     } catch (qrError) {
-      console.warn('payment.jpeg not found', qrError);
+      console.warn('payment.png not found', qrError);
     }
 
     let signatureUrl = '';
