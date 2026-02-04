@@ -158,7 +158,9 @@ export async function POST(request: Request) {
       }
     } catch { }
 
-    await sendWhatsAppMessage(quoteData.customerInfo.phone, pdfUrl);
+    if (!quoteData.skipWhatsApp) {
+      await sendWhatsAppMessage(quoteData.customerInfo.phone, pdfUrl);
+    }
 
     return NextResponse.json({ message: 'Quotation sent successfully!', url: urlData.publicUrl, totals: { subtotal, gstAmount, total, discount, grandTotal } });
 
