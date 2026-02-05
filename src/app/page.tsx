@@ -84,7 +84,7 @@ const panelTypes = [
 const panelBrands = ["Adani", "Tata", "Waaree", "Reliance", "Premier", "Emvee", "Vikram Solar", "Goldi Solar", "RenewSys", "Jakson", "Longi", "Jinko", "Canadian Solar", "Other"];
 
 // Inverter brands
-const inverterBrands = ["Polycab", "Shakti", "Growatt", "Sungrow", "Huawei", "Deye", "Servotech", "Luminous", "Other"];
+const inverterBrands = ["Polycab", "Shakti", "Growatt", "Sungrow", "Huawei", "Deye", "Servotech", "Luminous", "GoodWe", "Solis", "Solax", "Sofar Solar", "Other"];
 
 export default function QuotationBuilder() {
   // Customer Details
@@ -102,12 +102,14 @@ export default function QuotationBuilder() {
   const [panelBrand, setPanelBrand] = useState("Adani");
   const [customPanelBrand, setCustomPanelBrand] = useState("");
   const [panelType, setPanelType] = useState("Monoperc");
+  const [panelWarranty, setPanelWarranty] = useState("25 Years"); // New Warranty State
   const effectivePanelBrand = panelBrand === "Other" ? customPanelBrand : panelBrand;
 
   // Inverter Configuration
   const [inverterBrand, setInverterBrand] = useState("Polycab");
   const [customInverterBrand, setCustomInverterBrand] = useState("");
   const [inverterModel, setInverterModel] = useState("3 KW On-Grid String");
+  const [inverterWarranty, setInverterWarranty] = useState("5 Years"); // New Warranty State
   const effectiveInverterBrand = inverterBrand === "Other" ? customInverterBrand : inverterBrand;
 
   // Pricing
@@ -299,7 +301,9 @@ export default function QuotationBuilder() {
           panelBrand: effectivePanelBrand,
           panelWattage: panelWattage,
           panelType: panelType,
-          inverterBrand: inverterModel
+          panelWarranty: panelWarranty,
+          inverterBrand: inverterModel,
+          inverterWarranty: inverterWarranty
         },
         calculations: {
           basePrice: calculations.originalBasePrice,
@@ -518,6 +522,32 @@ export default function QuotationBuilder() {
                 </FormControl>
               </Box>
               {inverterBrand === "Other" && <TextField fullWidth label="Custom Inverter Brand" value={customInverterBrand} onChange={(e) => setCustomInverterBrand(e.target.value)} size="small" />}
+
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <FormControl size="small" sx={{ flex: 1 }}>
+                  <InputLabel>Panel Warranty</InputLabel>
+                  <Select value={panelWarranty} label="Panel Warranty" onChange={(e) => setPanelWarranty(e.target.value)}>
+                    <MenuItem value="25 Years">25 Years</MenuItem>
+                    <MenuItem value="30 Years">30 Years</MenuItem>
+                    <MenuItem value="10 Years">10 Years</MenuItem>
+                    <MenuItem value="12 Years">12 Years</MenuItem>
+                    <MenuItem value="Other">Other</MenuItem>
+                  </Select>
+                </FormControl>
+                {panelWarranty === "Other" && <TextField label="Custom Panel Warranty" size="small" sx={{ flex: 1 }} onChange={(e) => setPanelWarranty(e.target.value)} />}
+
+                <FormControl size="small" sx={{ flex: 1 }}>
+                  <InputLabel>Inverter Warranty</InputLabel>
+                  <Select value={inverterWarranty} label="Inverter Warranty" onChange={(e) => setInverterWarranty(e.target.value)}>
+                    <MenuItem value="5 Years">5 Years</MenuItem>
+                    <MenuItem value="7 Years">7 Years</MenuItem>
+                    <MenuItem value="8 Years">8 Years</MenuItem>
+                    <MenuItem value="10 Years">10 Years</MenuItem>
+                    <MenuItem value="Other">Other</MenuItem>
+                  </Select>
+                </FormControl>
+                {inverterWarranty === "Other" && <TextField label="Custom Inverter Warranty" size="small" sx={{ flex: 1 }} onChange={(e) => setInverterWarranty(e.target.value)} />}
+              </Box>
             </AccordionDetails>
           </Accordion>
 
@@ -692,7 +722,9 @@ export default function QuotationBuilder() {
               <Box sx={{ fontSize: "11px" }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25 }}><span>System Size:</span> <strong>{actualSystemSize} KW ({phase === 1 ? "Single Phase" : "Three Phase"})</strong></Box>
                 <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25, wordBreak: "break-word" }}><span>Modules:</span> <strong style={{ textAlign: "right", maxWidth: "60%" }}>{effectivePanelBrand} {panelWattage}Wp ({panelType})</strong></Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25, color: "#475569" }}><span>Module Warranty:</span> <strong>{panelWarranty}</strong></Box>
                 <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25, wordBreak: "break-word" }}><span>Inverter:</span> <strong style={{ textAlign: "right", maxWidth: "60%" }}>{effectiveInverterBrand} {inverterModel}</strong></Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25, color: "#475569" }}><span>Inverter Warranty:</span> <strong>{inverterWarranty}</strong></Box>
                 <Box sx={{ display: "flex", justifyContent: "space-between" }}><span>Type:</span> <strong>{selectedSystemType}</strong></Box>
               </Box>
             </Box>

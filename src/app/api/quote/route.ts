@@ -85,6 +85,8 @@ export async function POST(request: Request) {
       components: quoteData.components || defaultComponents,
       logoUrl,
       signatureUrl,
+      panelWarranty: quoteData.selectedProduct?.panelWarranty || "25 Years",
+      inverterWarranty: quoteData.selectedProduct?.inverterWarranty || "5 Years",
       // Pass frontend calculations directly, with fallback to computed values
       calculations: {
         ...quoteData.calculations,

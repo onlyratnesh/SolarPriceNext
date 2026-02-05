@@ -160,7 +160,9 @@ export const generateQuoteHtml = (data: any): string => {
         <div class="info-title">System Overview</div>
         <div class="system-row"><span>System Size:</span> <strong>${systemSize} KW (${phase})</strong></div>
         <div class="system-row"><span>Modules:</span> <strong>${panelBrand} ${panelWattage}Wp (${panelType})</strong></div>
+        <div class="system-row" style="color: #475569;"><span>Module Warranty:</span> <strong>${data.panelWarranty}</strong></div>
         <div class="system-row"><span>Inverter:</span> <strong>${inverterBrand}</strong></div>
+        <div class="system-row" style="color: #475569;"><span>Inverter Warranty:</span> <strong>${data.inverterWarranty}</strong></div>
         <div class="system-row"><span>Type:</span> <strong>${systemType}</strong></div>
       </div>
     </div>
