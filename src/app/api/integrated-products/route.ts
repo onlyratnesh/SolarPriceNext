@@ -41,3 +41,4 @@ export async function GET() {
     console.error('Fetch integrated products error:', err);
     return NextResponse.json({ success: false, message: err?.message ?? 'Failed to fetch products' }, { status: 500 });
   }
+}

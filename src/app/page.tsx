@@ -110,6 +110,7 @@ export default function QuotationBuilder() {
   const [customInverterBrand, setCustomInverterBrand] = useState("");
   const [inverterModel, setInverterModel] = useState("3 KW On-Grid String");
   const [inverterWarranty, setInverterWarranty] = useState("5 Years"); // New Warranty State
+  const [inverterModelEdited, setInverterModelEdited] = useState(false); // Track if user manually edited inverter model
   const effectiveInverterBrand = inverterBrand === "Other" ? customInverterBrand : inverterBrand;
 
   // Pricing
@@ -136,6 +137,12 @@ export default function QuotationBuilder() {
 
   // UI State
   const [loading, setLoading] = useState(false);
+  const [origin, setOrigin] = useState("");
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setOrigin(window.location.origin);
+    }
+  }, []);
   const [notification, setNotification] = useState<{ open: boolean; message: string; severity: "success" | "error" | "info" | "warning" }>({ open: false, message: "", severity: "success" });
   const [editComponentDialog, setEditComponentDialog] = useState(false);
   const [editingComponent, setEditingComponent] = useState<QuotationComponent | null>(null);
@@ -164,11 +171,13 @@ export default function QuotationBuilder() {
     if (defaultTermsList) setTerms(defaultTermsList.slice(0, 8));
   }, [selectedSystemType, panelWattage, effectivePanelBrand, panelType, numberOfPanels, effectiveInverterBrand, inverterModel]);
 
-  // Update inverter model when capacity changes
+  // Update inverter model when capacity changes (only if not manually edited)
   useEffect(() => {
-    const inverterCapacity = capacityKw <= 3 ? 3 : capacityKw <= 5 ? 5 : capacityKw <= 10 ? 10 : Math.ceil(capacityKw);
-    setInverterModel(`${inverterCapacity} KW ${selectedSystemType} String`);
-  }, [capacityKw, selectedSystemType]);
+    if (!inverterModelEdited) {
+      const inverterCapacity = capacityKw <= 3 ? 3 : capacityKw <= 5 ? 5 : capacityKw <= 10 ? 10 : Math.ceil(capacityKw);
+      setInverterModel(`${inverterCapacity} KW ${selectedSystemType} String`);
+    }
+  }, [capacityKw, selectedSystemType, inverterModelEdited]);
 
   // Handle Subsidy Logic: No subsidy for NDCR (Non-DCR) panels
   useEffect(() => {
@@ -233,7 +242,7 @@ export default function QuotationBuilder() {
   const handleDeleteComponent = (index: number) => setComponents(components.filter((_, i) => i !== index));
   const handleAddComponent = () => { if (newComponent.name) { setComponents([...components, { ...newComponent, sort_order: components.length }]); setNewComponent({ name: "", description: "", quantity: "1 Nos", make: "Standard", sort_order: 0 }); setAddComponentDialog(false); } };
 
-  const handleReset = () => { setCustomerName(""); setCustomerPhone(""); setCustomerAddress(""); setCapacityKw(3); setPhase(1); setPanelWattage(620); setPanelBrand("Adani"); setPriceInput(180000); };
+  const handleReset = () => { setCustomerName(""); setCustomerPhone(""); setCustomerAddress(""); setCapacityKw(3); setPhase(1); setPanelWattage(620); setPanelBrand("Adani"); setPriceInput(180000); setInverterModel("3 KW On-Grid String"); setInverterModelEdited(false); };
 
   const saveToDatabase = async () => {
     if (!customerName) return;
@@ -523,6 +532,18 @@ export default function QuotationBuilder() {
               </Box>
               {inverterBrand === "Other" && <TextField fullWidth label="Custom Inverter Brand" value={customInverterBrand} onChange={(e) => setCustomInverterBrand(e.target.value)} size="small" />}
 
+              <TextField 
+                fullWidth 
+                label="Inverter Model (Wattage/Capacity)" 
+                value={inverterModel} 
+                onChange={(e) => {
+                  setInverterModel(e.target.value);
+                  setInverterModelEdited(true); // Mark as manually edited
+                }}
+                size="small"
+                placeholder="e.g., 5 KW On-Grid String"
+              />
+
               <Box sx={{ display: "flex", gap: 1 }}>
                 <FormControl size="small" sx={{ flex: 1 }}>
                   <InputLabel>Panel Warranty</InputLabel>
@@ -691,7 +712,7 @@ export default function QuotationBuilder() {
           {/* Header */}
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "4px solid #eab308", pb: 3, mb: 3 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Box component="img" src="/logo.png" alt="Logo" sx={{ maxHeight: 80 }} onError={(e: any) => { e.target.style.display = 'none'; }} />
+              <Box component="img" src={origin ? `${origin}/logo.png` : "/logo.png"} alt="Logo" sx={{ maxHeight: 80 }} onError={(e: any) => { e.target.style.display = 'none'; }} />
               <Box>
                 <Typography sx={{ fontSize: "26px", fontWeight: 900, color: "#1e3a5f", letterSpacing: "-0.5px", lineHeight: 1 }}>ARPIT SOLAR SHOP</Typography>
                 <Typography sx={{ fontSize: "10px", fontWeight: 600, color: "#64748b", mt: 0.5, letterSpacing: 1, textTransform: "uppercase" }}>{companyDetails.tagline}</Typography>
@@ -777,7 +798,7 @@ export default function QuotationBuilder() {
                 <Box sx={{ mt: 1.5, pt: 1, borderTop: "1px dashed #cbd5e1", textAlign: "center" }}>
                   <Typography sx={{ fontWeight: 700, color: "#1e3a5f", fontSize: "10px", mb: 0.5 }}>Scan to Pay</Typography>
                   <a href={`upi://pay?pa=${companyDetails.bank.upiId}&pn=${encodeURIComponent(companyDetails.name)}&am=${calculations.totalAmount}&cu=INR`} style={{ textDecoration: "none" }}>
-                    <Box component="img" src="/payment.png" alt="Payment QR" sx={{ width: 100, height: 100, objectFit: "contain", mixBlendMode: "multiply", mx: "auto", display: "block", cursor: "pointer" }} onError={(e: any) => e.target.style.display = 'none'} />
+                    <Box component="img" src={origin ? `${origin}/payment.png` : "/payment.png"} alt="Payment QR" sx={{ width: 100, height: 100, objectFit: "contain", mixBlendMode: "multiply", mx: "auto", display: "block", cursor: "pointer" }} onError={(e: any) => e.target.style.display = 'none'} />
                   </a>
                   <Typography sx={{ fontSize: "8px", color: "#64748b", mt: 0.25 }}>Click or Scan with UPI App</Typography>
                 </Box>
@@ -837,7 +858,7 @@ export default function QuotationBuilder() {
             </Box>
             <Box sx={{ textAlign: "right", position: "relative" }}>
               <Typography sx={{ fontSize: "14px", fontWeight: 900, color: "#1e3a5f", mb: 0, textDecoration: "underline", textDecorationColor: "#eab308", textUnderlineOffset: 4 }}>For Arpit Solar Shop</Typography>
-              <Box component="img" src="/signature.png" alt="Authorized Signatory" sx={{ width: 120, height: 60, objectFit: "contain", display: "block", ml: "auto", my: 1 }} onError={(e: any) => e.target.style.display = 'none'} />
+              <Box component="img" src={origin ? `${origin}/signature.png` : "/signature.png"} alt="Authorized Signatory" sx={{ width: 120, height: 60, objectFit: "contain", display: "block", ml: "auto", my: 1 }} onError={(e: any) => e.target.style.display = 'none'} />
               <Box sx={{ width: 192, height: 1, bgcolor: "#cbd5e1", mb: 0.5, ml: "auto" }} />
               <Typography sx={{ fontSize: "9px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Authorized Signatory</Typography>
             </Box>

@@ -106,7 +106,9 @@ export async function POST(request: Request) {
     // Launch Chromium appropriately for the environment
     let browser: any;
     if (process.env.NODE_ENV === 'production') {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const chromium = require('@sparticuz/chromium-min');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const puppeteerCore = require('puppeteer-core');
 
       browser = await puppeteerCore.launch({
