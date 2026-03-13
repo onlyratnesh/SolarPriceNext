@@ -110,6 +110,9 @@ export default function QuotationBuilder() {
   const [customInverterBrand, setCustomInverterBrand] = useState("");
   const [inverterModel, setInverterModel] = useState("3 KW On-Grid String");
   const [inverterWarranty, setInverterWarranty] = useState("5 Years"); // New Warranty State
+  const [batteryWarranty, setBatteryWarranty] = useState("5 Years"); // Battery Warranty State
+  const [customBatteryWarranty, setCustomBatteryWarranty] = useState(""); // Custom Battery Warranty
+  const effectiveBatteryWarranty = batteryWarranty === "Other" ? customBatteryWarranty : batteryWarranty;
   const [inverterModelEdited, setInverterModelEdited] = useState(false); // Track if user manually edited inverter model
   const effectiveInverterBrand = inverterBrand === "Other" ? customInverterBrand : inverterBrand;
 
@@ -312,7 +315,8 @@ export default function QuotationBuilder() {
           panelType: panelType,
           panelWarranty: panelWarranty,
           inverterBrand: inverterModel,
-          inverterWarranty: inverterWarranty
+          inverterWarranty: inverterWarranty,
+          batteryWarranty: effectiveBatteryWarranty,
         },
         calculations: {
           basePrice: calculations.originalBasePrice,
@@ -569,6 +573,37 @@ export default function QuotationBuilder() {
                 </FormControl>
                 {inverterWarranty === "Other" && <TextField label="Custom Inverter Warranty" size="small" sx={{ flex: 1 }} onChange={(e) => setInverterWarranty(e.target.value)} />}
               </Box>
+
+              {(selectedSystemType === "Hybrid" || selectedSystemType === "Off-grid") && (
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <FormControl size="small" sx={{ flex: 1 }}>
+                    <InputLabel>Battery Warranty</InputLabel>
+                    <Select value={batteryWarranty} label="Battery Warranty" onChange={(e) => setBatteryWarranty(e.target.value)}>
+                      <MenuItem value="1 Year">1 Year</MenuItem>
+                      <MenuItem value="2 Years">2 Years</MenuItem>
+                      <MenuItem value="3 Years">3 Years</MenuItem>
+                      <MenuItem value="4 Years">4 Years</MenuItem>
+                      <MenuItem value="5 Years">5 Years</MenuItem>
+                      <MenuItem value="6 Years">6 Years</MenuItem>
+                      <MenuItem value="7 Years">7 Years</MenuItem>
+                      <MenuItem value="8 Years">8 Years</MenuItem>
+                      <MenuItem value="10 Years">10 Years</MenuItem>
+                      <MenuItem value="12 Years">12 Years</MenuItem>
+                      <MenuItem value="Other">Other (Custom)</MenuItem>
+                    </Select>
+                  </FormControl>
+                  {batteryWarranty === "Other" && (
+                    <TextField
+                      label="Custom Battery Warranty"
+                      size="small"
+                      sx={{ flex: 1 }}
+                      placeholder="e.g. 15 Years"
+                      value={customBatteryWarranty}
+                      onChange={(e) => setCustomBatteryWarranty(e.target.value)}
+                    />
+                  )}
+                </Box>
+              )}
             </AccordionDetails>
           </Accordion>
 
@@ -746,6 +781,9 @@ export default function QuotationBuilder() {
                 <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25, color: "#475569" }}><span>Module Warranty:</span> <strong>{panelWarranty}</strong></Box>
                 <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25, wordBreak: "break-word" }}><span>Inverter:</span> <strong style={{ textAlign: "right", maxWidth: "60%" }}>{effectiveInverterBrand} {inverterModel}</strong></Box>
                 <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25, color: "#475569" }}><span>Inverter Warranty:</span> <strong>{inverterWarranty}</strong></Box>
+                {(selectedSystemType === "Hybrid" || selectedSystemType === "Off-grid") && (
+                  <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25, color: "#475569" }}><span>Battery Warranty:</span> <strong>{effectiveBatteryWarranty}</strong></Box>
+                )}
                 <Box sx={{ display: "flex", justifyContent: "space-between" }}><span>Type:</span> <strong>{selectedSystemType}</strong></Box>
               </Box>
             </Box>

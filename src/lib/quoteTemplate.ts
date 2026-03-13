@@ -163,6 +163,7 @@ export const generateQuoteHtml = (data: any): string => {
         <div class="system-row" style="color: #475569;"><span>Module Warranty:</span> <strong>${data.panelWarranty}</strong></div>
         <div class="system-row"><span>Inverter:</span> <strong>${inverterBrand}</strong></div>
         <div class="system-row" style="color: #475569;"><span>Inverter Warranty:</span> <strong>${data.inverterWarranty}</strong></div>
+        ${(systemType === 'Hybrid' || systemType === 'Off-grid') ? `<div class="system-row" style="color: #475569;"><span>Battery Warranty:</span> <strong>${data.batteryWarranty}</strong></div>` : ''}
         <div class="system-row"><span>Type:</span> <strong>${systemType}</strong></div>
       </div>
     </div>
