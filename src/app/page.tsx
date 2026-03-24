@@ -177,7 +177,7 @@ export default function QuotationBuilder() {
   // Update inverter model when capacity changes (only if not manually edited)
   useEffect(() => {
     if (!inverterModelEdited) {
-      const inverterCapacity = capacityKw <= 3 ? 3 : capacityKw <= 5 ? 5 : capacityKw <= 10 ? 10 : Math.ceil(capacityKw);
+      const inverterCapacity = Math.max(1, Math.floor(capacityKw));
       setInverterModel(`${inverterCapacity} KW ${selectedSystemType} String`);
     }
   }, [capacityKw, selectedSystemType, inverterModelEdited]);
