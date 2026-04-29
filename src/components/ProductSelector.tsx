@@ -85,7 +85,7 @@ export default function ProductSelector({ onSelect, selectedProduct }: ProductSe
 
         <Grid container spacing={2}>
           {SupplierTabs.map((supplier) => (
-            <Grid item xs={12} sm={6} md={3} key={supplier.id}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={supplier.id}>
               <Paper
                 onClick={() => setActiveSupplier(supplier.id)}
                 sx={{

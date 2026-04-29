@@ -289,7 +289,7 @@ export default function ComponentsAdminPage() {
                 <DialogTitle>{editingComponent ? "Edit Component" : "Add New Component"}</DialogTitle>
                 <DialogContent>
                     <Grid container spacing={2} sx={{ mt: 1 }}>
-                        <Grid item xs={12}>
+                        <Grid size={{ xs: 12 }}>
                             <TextField
                                 fullWidth
                                 label="Component Name"
@@ -298,7 +298,7 @@ export default function ComponentsAdminPage() {
                                 placeholder="e.g., Solar Photovoltaic Modules"
                             />
                         </Grid>
-                        <Grid item xs={12}>
+                        <Grid size={{ xs: 12 }}>
                             <TextField
                                 fullWidth
                                 label="Description / Specification"
@@ -307,7 +307,7 @@ export default function ComponentsAdminPage() {
                                 placeholder="e.g., 580Wp (DCR) Topcon Modules"
                             />
                         </Grid>
-                        <Grid item xs={6}>
+                        <Grid size={{ xs: 6 }}>
                             <TextField
                                 fullWidth
                                 label="Default Quantity"
@@ -316,7 +316,7 @@ export default function ComponentsAdminPage() {
                                 placeholder="e.g., 6 Nos"
                             />
                         </Grid>
-                        <Grid item xs={6}>
+                        <Grid size={{ xs: 6 }}>
                             <TextField
                                 fullWidth
                                 label="Default Make / Brand"
@@ -325,7 +325,7 @@ export default function ComponentsAdminPage() {
                                 placeholder="e.g., Waaree/Adani"
                             />
                         </Grid>
-                        <Grid item xs={12}>
+                        <Grid size={{ xs: 12 }}>
                             <FormControlLabel
                                 control={
                                     <Switch

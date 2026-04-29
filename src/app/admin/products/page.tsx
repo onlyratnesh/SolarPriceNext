@@ -253,7 +253,7 @@ export default function ProductsAdminPage() {
                 <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
                 <DialogContent>
                     <Grid container spacing={2} sx={{ mt: 1 }}>
-                        <Grid item xs={12}>
+                        <Grid size={{ xs: 12 }}>
                             <TextField
                                 fullWidth
                                 label="Product Name"
@@ -262,7 +262,7 @@ export default function ProductsAdminPage() {
                                 placeholder="e.g., 3KW On-Grid Solar System"
                             />
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
                             <FormControl fullWidth>
                                 <InputLabel>System Type</InputLabel>
                                 <Select
@@ -278,7 +278,7 @@ export default function ProductsAdminPage() {
                                 </Select>
                             </FormControl>
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
                             <TextField
                                 fullWidth
                                 label="Brand"
@@ -287,7 +287,7 @@ export default function ProductsAdminPage() {
                                 placeholder="e.g., Waaree/Adani"
                             />
                         </Grid>
-                        <Grid item xs={6} sm={4}>
+                        <Grid size={{ xs: 6, sm: 4 }}>
                             <TextField
                                 fullWidth
                                 label="Capacity (KW)"
@@ -296,7 +296,7 @@ export default function ProductsAdminPage() {
                                 onChange={(e) => setFormData({ ...formData, capacity_kw: parseFloat(e.target.value) || 0 })}
                             />
                         </Grid>
-                        <Grid item xs={6} sm={4}>
+                        <Grid size={{ xs: 6, sm: 4 }}>
                             <FormControl fullWidth>
                                 <InputLabel>Phase</InputLabel>
                                 <Select
@@ -309,7 +309,7 @@ export default function ProductsAdminPage() {
                                 </Select>
                             </FormControl>
                         </Grid>
-                        <Grid item xs={12} sm={4}>
+                        <Grid size={{ xs: 12, sm: 4 }}>
                             <TextField
                                 fullWidth
                                 label="GST Rate (%)"
@@ -319,7 +319,7 @@ export default function ProductsAdminPage() {
                                 InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
                             />
                         </Grid>
-                        <Grid item xs={12}>
+                        <Grid size={{ xs: 12 }}>
                             <TextField
                                 fullWidth
                                 label="Base Price (Excl. GST)"

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSupabase } from '@/lib/supabase';
-import { generateQuoteNumber, gstConfig, calculateSavings } from '@/lib/companyDetails';
+import { generateQuoteNumber, gstConfig, calculateSavings, getSubsidyForCapacity } from '@/lib/companyDetails';
+import { sendKit19Enquiry } from '@/lib/kit19';
 
 // GET - List all quotations
 export async function GET(request: Request) {
@@ -110,8 +111,8 @@ export async function POST(request: Request) {
                 gst_rate: effectiveGstRate,
                 gst_amount,
                 total_amount,
-                central_subsidy: central_subsidy || 78000,
-                state_subsidy: state_subsidy || 30000,
+                central_subsidy: central_subsidy ?? getSubsidyForCapacity(capacity_kw || 3).central,
+                state_subsidy: state_subsidy ?? getSubsidyForCapacity(capacity_kw || 3).state,
                 terms: terms || null,
                 components: components || null,
                 savings_data: savings,
@@ -120,8 +121,16 @@ export async function POST(request: Request) {
             }])
             .select()
             .single();
-
         if (error) throw error;
+
+        // Send Enquiry to Kit19
+        await sendKit19Enquiry({
+            name: customer_name,
+            phone: customer_phone || "",
+            email: customer_email || "",
+            address: customer_address || "",
+            systemKw: capacity_kw || "",
+        });
 
         return NextResponse.json({ success: true, data });
     } catch (error: any) {

@@ -114,7 +114,7 @@ export default function AdminDashboard() {
           </Box>
         ) : (
           <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Card sx={{ borderRadius: 2, borderLeft: "4px solid #4CAF50" }}>
                 <CardContent>
                   <Typography variant="h3" fontWeight="bold" color="#4CAF50">
@@ -124,7 +124,7 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Card sx={{ borderRadius: 2, borderLeft: "4px solid #FF9800" }}>
                 <CardContent>
                   <Typography variant="h3" fontWeight="bold" color="#FF9800">
@@ -134,7 +134,7 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Card sx={{ borderRadius: 2, borderLeft: "4px solid #2196F3" }}>
                 <CardContent>
                   <Typography variant="h3" fontWeight="bold" color="#2196F3">
@@ -153,7 +153,7 @@ export default function AdminDashboard() {
         </Typography>
         <Grid container spacing={3}>
           {menuItems.map((item) => (
-            <Grid item xs={12} sm={6} md={3} key={item.title}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={item.title}>
               <Link href={item.href} style={{ textDecoration: "none" }}>
                 <Card
                   sx={{
@@ -185,7 +185,7 @@ export default function AdminDashboard() {
               Company Information
             </Typography>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   GSTIN: {companyDetails.gstin}
                 </Typography>
@@ -193,7 +193,7 @@ export default function AdminDashboard() {
                   Head Office: {companyDetails.headOffice}
                 </Typography>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   Phone: {companyDetails.phone}
                 </Typography>

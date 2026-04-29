@@ -31,9 +31,20 @@ export const companyDetails = {
 };
 
 // Default Subsidy Amounts (can be overridden per quotation)
+// For 3 KW and above
 export const defaultSubsidy = {
-    central: 78000,  // PM Surya Ghar
+    central: 78000,  // PM Surya Ghar (3 KW+)
     state: 30000,    // State Government
+};
+
+// Capacity-based subsidy lookup
+// ≤ 2 KW (including decimals like 1.5 KW): Central = ₹60,000, State = ₹30,000
+// ≥ 3 KW: Central = ₹78,000, State = ₹30,000
+export const getSubsidyForCapacity = (capacityKw: number): { central: number; state: number } => {
+    if (capacityKw < 3) {
+        return { central: 60000, state: 30000 };
+    }
+    return { central: 78000, state: 30000 };
 };
 
 // GST Configuration

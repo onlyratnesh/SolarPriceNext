@@ -5,7 +5,15 @@ export async function sendWhatsAppMessage(phone: string, pdfUrl: string) {
     const apiKey = process.env.DOUBLETICK_API_KEY;
     const senderPhone = process.env.DOUBLETICK_SENDER_PHONE;
     if (!apiKey || !senderPhone) throw new Error('Doubletick API Key or Sender Phone is not set');
-    const cleanedPhone = phone.replace(/[^0-9]/g, '');
+    let cleanedPhone = phone.replace(/[^0-9]/g, '');
+    // Strip leading country code if present (91XXXXXXXXXX)
+    if (cleanedPhone.length === 12 && cleanedPhone.startsWith('91')) {
+      cleanedPhone = cleanedPhone.slice(2);
+    }
+    // Strip leading 0 (Indian STD format: 0XXXXXXXXXX)
+    if (cleanedPhone.startsWith('0')) {
+      cleanedPhone = cleanedPhone.slice(1);
+    }
     if (cleanedPhone.length !== 10) throw new Error(`Invalid phone number: ${phone}`);
     const formattedPhone = `+91${cleanedPhone}`;
     const payload = {

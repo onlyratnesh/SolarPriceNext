@@ -56,6 +56,7 @@ import {
   defaultComponents,
   gstConfig,
   defaultSubsidy,
+  getSubsidyForCapacity,
   calculateSavings,
   generateQuoteNumber,
 } from "@/lib/companyDetails";
@@ -182,17 +183,18 @@ export default function QuotationBuilder() {
     }
   }, [capacityKw, selectedSystemType, inverterModelEdited]);
 
-  // Handle Subsidy Logic: No subsidy for NDCR (Non-DCR) panels
+  // Handle Subsidy Logic: No subsidy for NDCR/Off-grid, capacity-based for others
   useEffect(() => {
     if (panelType === "NDCR" || selectedSystemType === "Off-grid") {
       setCentralSubsidy(0);
       setStateSubsidy(0);
     } else {
-      // Restore default subsidies for DCR/Other types
-      setCentralSubsidy(defaultSubsidy.central);
-      setStateSubsidy(defaultSubsidy.state);
+      // Use capacity-based subsidy: ≤2 KW = ₹60,000 central, ≥3 KW = ₹78,000 central
+      const subsidy = getSubsidyForCapacity(capacityKw);
+      setCentralSubsidy(subsidy.central);
+      setStateSubsidy(subsidy.state);
     }
-  }, [panelType, selectedSystemType]);
+  }, [panelType, selectedSystemType, capacityKw]);
 
   // Calculate extra costs
   const extraCosts = useMemo(() => {
